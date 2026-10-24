@@ -1463,24 +1463,25 @@ A.startTune = () => {
 };
 A.stopTune = () => { clearInterval(A.tune); A.tune = null; };
 
-/* ---- the art: painted 16-bit pixel art, drawn into sprites once the Pride
- * font is in. Nothing is fetched; every tile below is painted here. ---- */
-const TILE = 16;
+/* ---- the art: painted 16-bit pixel art at 32 px a tile, drawn into sprites
+ * once the Pride font is in. Nothing is fetched; every tile below is painted
+ * here, pixel by pixel, twice the detail of the map's own scale. ---- */
+const TILE = 16, AS = 2, TS = TILE * AS;   /* sprites are AS times the map's scale */
 const PAL = {
-  out: "#0d0f14", g0: "#2f6a2e", g1: "#3e7d3a", g2: "#4f9348", g3: "#6aad59", dirt: "#7d6240", dirt2: "#9a7a52", sand: "#c9b482",
-  w0: "#163a66", w1: "#1d4f86", w2: "#2a6aa8", w3: "#5fa8d8", foam: "#bfe6f5",
-  t0: "#1f4a24", t1: "#2d6b32", t2: "#49904a", t3: "#7fc06b", bark: "#4a2f1c",
-  r0: "#2b2d36", r1: "#3a3d48", r2: "#50545f", lane: "#d6c66a", curb: "#8a8f9b",
-  c0: "#5c6270", c1: "#8a909c", c2: "#b3b8c2", c3: "#dfe2e8",
-  b0: "#7a2f24", b1: "#a4432f", b2: "#c96b4a", b3: "#e8a07a",
-  wood: "#6b4a2a", wood2: "#9a7244", roofB: "#2f4b7a", roofB2: "#4a6fae", roofR: "#8c2f2a", roofR2: "#b84a3b", roofG: "#3b6b4a", roofG2: "#5a9a68",
-  gl0: "#1b5e75", gl1: "#2c9ab8", gl2: "#73dff3", win: "#ffd36b", winOff: "#2a3246",
-  m0: "#4b505c", m1: "#6f7582", m2: "#9ea4b2", m3: "#d2d6de",
-  smoke0: "#4a4f5a", smoke1: "#7b818d", smoke2: "#aab0bb",
+  out: "#0d0f14", g0: "#2f6a2e", g1: "#3e7d3a", g2: "#4f9348", g3: "#6aad59", g4: "#86c46a", dirt: "#7d6240", dirt2: "#9a7a52", dirt3: "#b8955f", sand: "#c9b482",
+  w0: "#163a66", w1: "#1d4f86", w2: "#2a6aa8", w3: "#5fa8d8", w4: "#8ccbea", foam: "#bfe6f5",
+  t0: "#1f4a24", t1: "#2d6b32", t2: "#49904a", t3: "#7fc06b", t4: "#a8db8a", bark: "#4a2f1c", bark2: "#6b4a2a",
+  r0: "#2b2d36", r1: "#3a3d48", r2: "#50545f", r3: "#666a76", lane: "#d6c66a", curb: "#8a8f9b", curb2: "#b4b8c4",
+  c0: "#5c6270", c1: "#8a909c", c2: "#b3b8c2", c3: "#dfe2e8", c4: "#f4f5f8",
+  b0: "#7a2f24", b1: "#a4432f", b2: "#c96b4a", b3: "#e8a07a", b4: "#f6c9a8",
+  wood: "#6b4a2a", wood2: "#9a7244", wood3: "#c49a62", roofB: "#2f4b7a", roofB2: "#4a6fae", roofB3: "#6f93d0", roofR: "#8c2f2a", roofR2: "#b84a3b", roofR3: "#dc6d5a", roofG: "#3b6b4a", roofG2: "#5a9a68", roofG3: "#7fc08a", roofP: "#5a3f8a", roofP2: "#7d5fb8",
+  gl0: "#1b5e75", gl1: "#2c9ab8", gl2: "#73dff3", gl3: "#b8f1fb", win: "#ffd36b", win2: "#fff0b8", winOff: "#2a3246",
+  m0: "#4b505c", m1: "#6f7582", m2: "#9ea4b2", m3: "#d2d6de", m4: "#eef0f4",
+  smoke0: "#4a4f5a", smoke1: "#7b818d", smoke2: "#aab0bb", smoke3: "#d7dbe3",
   f0: "#fff1a8", f1: "#ffb000", f2: "#ff5a1f", f3: "#a8201a",
-  rub0: "#4e4a46", rub1: "#726b63", rub2: "#9b9389",
+  rub0: "#4e4a46", rub1: "#726b63", rub2: "#9b9389", rub3: "#bdb5aa",
   flood: "#4a5f7a", mud: "#5a4a35", rad0: "#5d8a2a", rad1: "#9fd13a", rad2: "#e2ff6a",
-  puma0: "#7a4a22", puma1: "#a9702f", puma2: "#d19a4a", puma3: "#f0cf8a", cream: "#f6e9cf", eye: "#ffb000", pupil: "#1a1a24",
+  puma0: "#7a4a22", puma1: "#a9702f", puma2: "#d19a4a", puma3: "#f0cf8a", cream: "#f6e9cf", eye: "#ffb000", pupil: "#1a1a24", pink: "#e58aa0",
   cyan: "#54f2ff", gold: "#ffb000", red: "#ff5266", white: "#ffffff", black: "#000000", blue: "#4c8dff", violet: "#b47dff", ink: "#dbe4fb"
 };
 const ART = {};
@@ -1489,286 +1490,335 @@ const P = (g, x, y, c) => { g.fillStyle = c; g.fillRect(x, y, 1, 1); };
 const R_ = (g, x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
 function D_(g, x, y, w, h, a, b) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) P(g, x + i, y + j, ((i + j) & 1) ? a : b); }
 function O_(g, x, y, w, h, c) { R_(g, x, y, w, 1, c); R_(g, x, y + h - 1, w, 1, c); R_(g, x, y, 1, h, c); R_(g, x + w - 1, y, 1, h, c); }
-/* a bevelled box: face, light top and left, dark right and bottom, outline */
+/* a painted gradient: bands of tones top to bottom, each boundary dithered a row each way */
+function grad(g, x, y, w, h, tones) {
+  const n = tones.length, bh = h / n;
+  for (let j = 0; j < h; j++) {
+    const t = j / bh, k = Math.min(n - 1, Math.floor(t)), f = t - k;
+    for (let i = 0; i < w; i++) {
+      let c = tones[k];
+      if (k < n - 1 && f > 0.72 && ((i + j) & 1)) c = tones[k + 1];
+      if (k > 0 && f < 0.28 && !((i + j) & 1)) c = tones[k - 1];
+      P(g, x + i, y + j, c);
+    }
+  }
+}
+/* a bevelled box: a painted face, light top and left, dark right and bottom, an outline */
 function box(g, x, y, w, h, face, lite, dark, out = PAL.out) {
-  R_(g, x, y, w, h, face);
+  if (Array.isArray(face)) grad(g, x, y, w, h, face); else R_(g, x, y, w, h, face);
   R_(g, x + 1, y + 1, w - 2, 1, lite); R_(g, x + 1, y + 1, 1, h - 2, lite);
-  R_(g, x + w - 2, y + 1, 1, h - 2, dark); R_(g, x + 1, y + h - 2, w - 2, 1, dark);
+  R_(g, x + w - 2, y + 2, 1, h - 3, dark); R_(g, x + 2, y + h - 2, w - 3, 1, dark);
   if (out) O_(g, x, y, w, h, out);
 }
-/* grass with tufts and a little dither, seeded so every tile paints the same */
 function grassInto(g, x, y, w, h, seed) {
   const r = rng(seed);
   R_(g, x, y, w, h, PAL.g1);
-  for (let i = 0; i < w * h / 5; i++) P(g, x + r.int(w), y + r.int(h), r() < 0.5 ? PAL.g0 : PAL.g2);
-  for (let i = 0; i < w * h / 40; i++) { const px = x + r.int(w - 1), py = y + r.int(h - 1); P(g, px, py, PAL.g3); P(g, px + 1, py + 1, PAL.g0); }
+  for (let i = 0; i < w * h / 6; i++) P(g, x + r.int(w), y + r.int(h), r() < 0.5 ? PAL.g0 : PAL.g2);
+  for (let i = 0; i < w * h / 24; i++) { const px = x + r.int(w - 2), py = y + r.int(h - 2); P(g, px, py, PAL.g3); P(g, px + 1, py, PAL.g2); P(g, px + 1, py + 1, PAL.g0); }
+  for (let i = 0; i < w * h / 160; i++) { const px = x + r.int(w - 3), py = y + r.int(h - 3); P(g, px + 1, py, PAL.g4); P(g, px, py + 1, PAL.g3); P(g, px + 2, py + 1, PAL.g3); P(g, px + 1, py + 2, PAL.g2); }
 }
-function windows(g, x, y, w, h, cols, rows, on, off, lit = 0.7, seed = 1) {
-  const r = rng(seed), cw = Math.floor((w - 1) / cols), rh = Math.floor((h - 1) / rows);
+function windows(g, x, y, w, h, cols, rows, on, off, lit = 0.7, seed = 1, ww = 4, wh = 5) {
+  const r = rng(seed), gx = (w - cols * ww) / (cols + 1), gy = (h - rows * wh) / (rows + 1);
   for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-    const wx = x + 1 + i * cw + Math.floor((cw - 2) / 2) - 0, wy = y + 1 + j * rh + 1;
-    R_(g, wx, wy, 2, Math.max(1, rh - 2), r() < lit ? on : off);
+    const wx = Math.round(x + gx + i * (ww + gx)), wy = Math.round(y + gy + j * (wh + gy)), isOn = r() < lit;
+    R_(g, wx, wy, ww, wh, isOn ? on : off); if (isOn) { P(g, wx, wy, PAL.win2); } else P(g, wx, wy, PAL.m1);
+    O_(g, wx - 1, wy - 1, ww + 2, wh + 2, PAL.out);
   }
 }
-/* a chimney with a cap, and the stack of smoke frames drawn separately */
-function chimney(g, x, y, h) { R_(g, x, y, 3, h, PAL.c0); R_(g, x + 1, y, 1, h, PAL.c1); R_(g, x - 1, y, 5, 2, PAL.b0); R_(g, x, y, 3, 1, PAL.b1); }
-function house(g, x, y, roof, roof2, wall, wall2, flip) {
-  /* a gabled house seen from the front and a little above, 14 wide, 12 high */
-  R_(g, x + 1, y + 6, 12, 6, wall); R_(g, x + 2, y + 7, 1, 4, wall2);
-  R_(g, x, y + 5, 14, 1, PAL.out);
-  for (let i = 0; i < 5; i++) { R_(g, x + 1 + i, y + 5 - i, 12 - i * 2, 1, (i & 1) ? roof2 : roof); }
-  R_(g, x + 6, y, 2, 1, PAL.out);
-  O_(g, x, y + 5, 14, 7, PAL.out);
-  R_(g, x + (flip ? 9 : 3), y + 8, 2, 4, PAL.wood); R_(g, x + (flip ? 4 : 9), y + 8, 2, 2, PAL.win); P(g, x + (flip ? 4 : 9), y + 8, PAL.white);
+function chimney(g, x, y, w, h, c = PAL.c0, c2 = PAL.c1) { R_(g, x, y, w, h, c); R_(g, x + 1, y, 1, h, c2); R_(g, x + w - 1, y, 1, h, PAL.out); R_(g, x - 1, y, w + 2, 3, PAL.b0); R_(g, x, y, w, 1, PAL.b1); }
+function house(g, x, y, roof, roof2, roof3, wall, wall2, flip) {
+  /* a cottage 28 wide, 24 high: a pitched roof in three tones, a chimney, a round window and a door */
+  R_(g, x + 2, y + 12, 24, 12, wall); R_(g, x + 3, y + 13, 1, 10, wall2); R_(g, x + 2, y + 22, 24, 1, wall2);
+  for (let i = 0; i < 10; i++) { const w = 28 - i * 2.4 | 0, xx = x + (28 - w) / 2 | 0; R_(g, xx, y + 10 - i, w, 1, i < 3 ? roof : i < 7 ? roof2 : roof3); if (i % 3 === 1) for (let k = xx + (i & 1); k < xx + w; k += 3) P(g, k, y + 10 - i, roof); }
+  R_(g, x, y + 10, 28, 1, PAL.out); R_(g, x + 1, y + 11, 26, 1, roof);
+  R_(g, x + 12, y, 4, 1, PAL.out);
+  O_(g, x, y + 10, 28, 14, PAL.out); R_(g, x + 1, y + 11, 1, 1, PAL.out); R_(g, x + 26, y + 11, 1, 1, PAL.out);
+  R_(g, x + (flip ? 19 : 5), y + 15, 5, 9, PAL.wood); R_(g, x + (flip ? 20 : 6), y + 16, 1, 7, PAL.wood2); P(g, x + (flip ? 23 : 9), y + 19, PAL.gold);
+  R_(g, x + (flip ? 8 : 17), y + 15, 5, 5, PAL.win); P(g, x + (flip ? 8 : 17), y + 15, PAL.win2); O_(g, x + (flip ? 7 : 16), y + 14, 7, 7, PAL.out); R_(g, x + (flip ? 10 : 19), y + 15, 1, 5, PAL.out);
+  chimney(g, x + (flip ? 5 : 20), y + 2, 3, 7);
 }
 function smokeFrames() {
   return [0, 1, 2].map(f => {
-    const [c, g] = mk(16, 16);
-    const puffs = [[7, 12 - f * 3, 2], [5 + f, 8 - f * 2, 3], [9 - f, 4 - f, 3 + f]];
-    for (const [x, y, s] of puffs) { if (y < -2) continue; R_(g, x, Math.max(0, y), s, s, f === 2 ? PAL.smoke2 : PAL.smoke1); P(g, x, Math.max(0, y), PAL.smoke2); }
+    const [c, g] = mk(TS, TS);
+    const puffs = [[14, 24 - f * 6, 6], [8 + f * 2, 16 - f * 4, 7], [18 - f * 2, 8 - f * 2, 8 + f * 2]];
+    for (const [x, y, s] of puffs) { if (y + s < 0) continue; const yy = Math.max(-4, y); R_(g, x, yy, s, s, f === 2 ? PAL.smoke2 : PAL.smoke1); R_(g, x + 1, yy, s - 2, 1, PAL.smoke3); P(g, x, yy, PAL.smoke3); R_(g, x + s - 1, yy + 1, 1, s - 1, PAL.smoke0); R_(g, x + 1, yy + s - 1, s - 1, 1, PAL.smoke0); }
     return c;
   });
 }
 function paintZoneEmpty(k) {
-  const [c, g] = mk(48, 48);
-  grassInto(g, 0, 0, 48, 48, 11 + k.charCodeAt(0));
-  const col = k === "R" ? PAL.g3 : k === "C" ? PAL.gl2 : PAL.gold;
-  for (let i = 1; i < 47; i += 2) { P(g, i, 1, col); P(g, i, 46, col); P(g, 1, i, col); P(g, 46, i, col); }
-  g.font = "32px Pride"; g.textBaseline = "top"; g.fillStyle = PAL.out; g.fillText(k, 16, 14); g.fillStyle = col; g.fillText(k, 15, 13);
+  const [c, g] = mk(TS * 3, TS * 3);
+  grassInto(g, 0, 0, TS * 3, TS * 3, 11 + k.charCodeAt(0));
+  const col = k === "R" ? PAL.g4 : k === "C" ? PAL.gl2 : PAL.gold;
+  for (let i = 2; i < 94; i += 4) { R_(g, i, 2, 2, 2, col); R_(g, i, 92, 2, 2, col); R_(g, 2, i, 2, 2, col); R_(g, 92, i, 2, 2, col); }
+  R_(g, 34, 30, 28, 36, "rgba(13,15,20,.55)"); O_(g, 34, 30, 28, 36, col);
+  g.font = "32px Pride"; g.textBaseline = "top"; g.textAlign = "center"; g.fillStyle = PAL.out; g.fillText(k, 49, 35); g.fillStyle = col; g.fillText(k, 48, 34);
   return c;
 }
 function paintR(lv) {
-  const [c, g] = mk(48, 48);
-  grassInto(g, 0, 0, 48, 48, 100 + lv);
-  if (lv === 1) { house(g, 4, 6, PAL.roofR, PAL.roofR2, PAL.cream, PAL.c2, false); house(g, 28, 26, PAL.roofB, PAL.roofB2, PAL.b3, PAL.b2, true); R_(g, 18, 20, 12, 2, PAL.dirt2); }
-  else if (lv === 2) {
-    house(g, 2, 3, PAL.roofR, PAL.roofR2, PAL.cream, PAL.c2, false); house(g, 30, 3, PAL.roofG, PAL.roofG2, PAL.b3, PAL.b2, true);
-    house(g, 2, 32, PAL.roofB, PAL.roofB2, PAL.c3, PAL.c2, true); house(g, 30, 32, PAL.roofR, PAL.roofR2, PAL.cream, PAL.c2, false);
-    R_(g, 20, 0, 8, 48, PAL.dirt2); R_(g, 22, 0, 4, 48, PAL.dirt); for (let i = 2; i < 48; i += 6) P(g, 23 + (i % 2), i, PAL.sand);
+  const [c, g] = mk(TS * 3, TS * 3);
+  grassInto(g, 0, 0, TS * 3, TS * 3, 100 + lv);
+  if (lv === 1) {
+    house(g, 8, 12, PAL.roofR, PAL.roofR2, PAL.roofR3, PAL.cream, PAL.c2, false);
+    house(g, 56, 52, PAL.roofB, PAL.roofB2, PAL.roofB3, PAL.b4, PAL.b3, true);
+    R_(g, 36, 36, 20, 4, PAL.dirt2); R_(g, 36, 37, 20, 2, PAL.dirt3); for (let i = 36; i < 56; i += 5) P(g, i, 38, PAL.sand);
+    for (let i = 0; i < 6; i++) { R_(g, 12 + i * 4, 40, 2, 5, PAL.wood3); } R_(g, 10, 42, 26, 1, PAL.wood2);
+    R_(g, 72, 20, 10, 10, PAL.t1); R_(g, 74, 18, 6, 2, PAL.t2); R_(g, 73, 22, 3, 3, PAL.t3); R_(g, 76, 30, 2, 3, PAL.bark);
+  } else if (lv === 2) {
+    house(g, 4, 6, PAL.roofR, PAL.roofR2, PAL.roofR3, PAL.cream, PAL.c2, false); house(g, 60, 6, PAL.roofG, PAL.roofG2, PAL.roofG3, PAL.b4, PAL.b3, true);
+    house(g, 4, 64, PAL.roofB, PAL.roofB2, PAL.roofB3, PAL.c3, PAL.c2, true); house(g, 60, 64, PAL.roofR, PAL.roofR2, PAL.roofR3, PAL.cream, PAL.c2, false);
+    R_(g, 40, 0, 16, 96, PAL.dirt2); R_(g, 44, 0, 8, 96, PAL.dirt); for (let i = 3; i < 96; i += 7) { P(g, 46 + (i % 3), i, PAL.sand); P(g, 49 - (i % 2), i + 3, PAL.sand); }
+    for (const [x, y] of [[34, 40], [62, 44], [30, 90], [64, 92]]) { P(g, x, y, PAL.red); P(g, x + 1, y, PAL.white); P(g, x, y + 1, PAL.g0); }
   } else if (lv === 3) {
-    for (const [x, w] of [[3, 20], [26, 19]]) {
-      box(g, x, 10, w, 36, PAL.b1, PAL.b2, PAL.b0);
-      R_(g, x + 1, 8, w - 2, 3, PAL.c1); R_(g, x + 1, 8, w - 2, 1, PAL.c2);
-      windows(g, x, 12, w, 30, 3, 5, PAL.win, PAL.winOff, 0.65, x);
-      R_(g, x + Math.floor(w / 2) - 1, 41, 3, 4, PAL.wood);
+    for (const [x, w, face] of [[6, 40, [PAL.b3, PAL.b2, PAL.b1, PAL.b0]], [52, 38, [PAL.c3, PAL.c2, PAL.c1, PAL.c0]]]) {
+      box(g, x, 20, w, 72, face, PAL.white, PAL.out);
+      R_(g, x + 2, 16, w - 4, 6, PAL.c1); R_(g, x + 2, 16, w - 4, 1, PAL.c3); R_(g, x + 2, 21, w - 4, 1, PAL.c0);
+      windows(g, x + 1, 24, w - 2, 60, 3, 5, PAL.win, PAL.winOff, 0.65, x, 5, 6);
+      R_(g, x + (w >> 1) - 3, 84, 7, 8, PAL.wood); R_(g, x + (w >> 1) - 2, 85, 1, 6, PAL.wood2); P(g, x + (w >> 1) + 2, 88, PAL.gold);
+      for (let j = 0; j < 4; j++) R_(g, x + 2, 36 + j * 12, w - 4, 1, PAL.out);
     }
-    R_(g, 0, 46, 48, 2, PAL.dirt2);
+    R_(g, 0, 92, 96, 4, PAL.dirt2); R_(g, 0, 93, 96, 1, PAL.dirt3);
   } else {
-    box(g, 6, 4, 36, 42, PAL.c1, PAL.c2, PAL.c0);
-    R_(g, 8, 2, 32, 3, PAL.c2); R_(g, 8, 2, 32, 1, PAL.c3); R_(g, 20, 0, 8, 2, PAL.m1);
-    for (let j = 0; j < 7; j++) for (let i = 0; i < 6; i++) R_(g, 9 + i * 5, 8 + j * 5, 3, 3, ((i * 7 + j * 3) % 5) ? PAL.win : PAL.winOff);
-    R_(g, 20, 41, 8, 5, PAL.gl0); R_(g, 21, 42, 6, 3, PAL.gl1); R_(g, 23, 42, 2, 4, PAL.gl2);
-    R_(g, 0, 46, 48, 2, PAL.dirt2);
-    for (let i = 1; i < 6; i += 2) { R_(g, 1, 2 + i * 7, 3, 2, PAL.t1); R_(g, 44, 4 + i * 7, 3, 2, PAL.t1); }
+    box(g, 12, 8, 72, 84, [PAL.c3, PAL.c2, PAL.c1, PAL.c0], PAL.c4, PAL.out);
+    R_(g, 16, 4, 64, 5, PAL.c2); R_(g, 16, 4, 64, 1, PAL.c4); R_(g, 40, -2, 16, 6, PAL.m1); R_(g, 47, -10, 2, 10, PAL.m2); P(g, 48, -11, PAL.red);
+    for (let j = 0; j < 7; j++) for (let i = 0; i < 6; i++) { const on = ((i * 7 + j * 3) % 5) !== 0; R_(g, 17 + i * 11, 14 + j * 10, 7, 6, on ? PAL.win : PAL.winOff); if (on) R_(g, 17 + i * 11, 14 + j * 10, 2, 1, PAL.win2); O_(g, 16 + i * 11, 13 + j * 10, 9, 8, PAL.out); }
+    R_(g, 38, 80, 20, 12, PAL.gl0); R_(g, 40, 82, 16, 8, PAL.gl1); R_(g, 46, 82, 4, 10, PAL.gl2); O_(g, 37, 79, 22, 13, PAL.out);
+    R_(g, 0, 92, 96, 4, PAL.dirt2); R_(g, 0, 93, 96, 1, PAL.dirt3);
+    for (const x of [2, 88]) { R_(g, x, 70, 7, 8, PAL.t1); R_(g, x + 1, 68, 5, 2, PAL.t2); P(g, x + 2, 71, PAL.t3); R_(g, x + 3, 78, 1, 3, PAL.bark); }
   }
   return c;
 }
+function awning(g, x, y, w, a, b) { for (let i = 0; i < w; i += 4) R_(g, x + i, y, 4, 5, ((i / 4) & 1) ? b : a); for (let i = 0; i < w; i += 4) { P(g, x + i + 1, y + 5, ((i / 4) & 1) ? b : a); P(g, x + i + 2, y + 5, ((i / 4) & 1) ? b : a); } R_(g, x, y + 4, w, 1, "rgba(13,15,20,.3)"); O_(g, x - 1, y - 1, w + 2, 7, PAL.out); }
 function paintC(lv) {
-  const [c, g] = mk(48, 48);
-  grassInto(g, 0, 0, 48, 48, 200 + lv);
-  R_(g, 0, 40, 48, 8, PAL.r1); R_(g, 0, 40, 48, 1, PAL.curb);
+  const [c, g] = mk(TS * 3, TS * 3);
+  grassInto(g, 0, 0, TS * 3, TS * 3, 200 + lv);
+  R_(g, 0, 80, 96, 16, PAL.r1); R_(g, 0, 80, 96, 2, PAL.curb); R_(g, 0, 82, 96, 1, PAL.curb2);
   if (lv === 1) {
-    for (const [x, a, b] of [[3, PAL.red, PAL.white], [25, PAL.gl1, PAL.white]]) {
-      box(g, x, 18, 20, 22, PAL.c2, PAL.c3, PAL.c1);
-      for (let i = 0; i < 20; i += 2) R_(g, x + i, 24, 2, 3, (i & 2) ? a : b);
-      R_(g, x + 3, 29, 6, 6, PAL.gl2); R_(g, x + 11, 29, 6, 10, PAL.gl1); R_(g, x + 12, 30, 1, 8, PAL.gl2);
+    for (const [x, a, name] of [[6, PAL.red, "CATNIP"], [50, PAL.gl1, "FISH"]]) {
+      box(g, x, 36, 40, 44, [PAL.c4, PAL.c3, PAL.c2], PAL.white, PAL.c0);
+      R_(g, x + 3, 28, 34, 9, PAL.c3); O_(g, x + 2, 27, 36, 11, PAL.out);
+      g.font = "16px Pride"; g.textBaseline = "top"; g.textAlign = "center"; g.fillStyle = PAL.out; g.fillText(name, x + 20, 29);
+      awning(g, x + 2, 40, 36, a, PAL.white);
+      R_(g, x + 5, 50, 14, 20, PAL.gl1); R_(g, x + 6, 51, 3, 18, PAL.gl2); R_(g, x + 10, 54, 6, 5, PAL.gl3); O_(g, x + 4, 49, 16, 22, PAL.out);
+      R_(g, x + 25, 56, 10, 24, PAL.wood); R_(g, x + 26, 57, 1, 22, PAL.wood2); P(g, x + 32, 68, PAL.gold); O_(g, x + 24, 55, 12, 25, PAL.out);
     }
   } else if (lv === 2) {
-    box(g, 2, 8, 44, 32, PAL.b3, PAL.cream, PAL.b2);
-    for (let i = 3; i < 45; i += 2) R_(g, i, 18, 2, 3, (i & 2) ? PAL.roofG : PAL.white);
-    for (let i = 0; i < 4; i++) { R_(g, 5 + i * 11, 24, 8, 8, PAL.gl1); R_(g, 6 + i * 11, 25, 2, 6, PAL.gl2); }
-    R_(g, 21, 32, 6, 8, PAL.wood);
-    for (let i = 0; i < 8; i++) R_(g, 6 + i * 4, 10, 3, 3, (i & 1) ? PAL.white : PAL.red);
+    box(g, 4, 16, 88, 64, [PAL.b4, PAL.b3, PAL.b2], PAL.cream, PAL.b1);
+    R_(g, 14, 4, 68, 14, PAL.roofB); R_(g, 15, 5, 66, 1, PAL.roofB3); O_(g, 13, 3, 70, 16, PAL.out);
+    g.font = "16px Pride"; g.textBaseline = "top"; g.textAlign = "center"; g.fillStyle = PAL.white; g.fillText("PUMA MART", 48, 7);
+    awning(g, 6, 22, 84, PAL.roofG, PAL.white);
+    for (let i = 0; i < 4; i++) { R_(g, 10 + i * 22, 34, 16, 18, PAL.gl1); R_(g, 11 + i * 22, 35, 3, 16, PAL.gl2); R_(g, 16 + i * 22, 38, 7, 6, PAL.gl3); O_(g, 9 + i * 22, 33, 18, 20, PAL.out); }
+    R_(g, 40, 58, 16, 22, PAL.gl0); R_(g, 42, 60, 12, 18, PAL.gl1); R_(g, 47, 60, 2, 20, PAL.m3); O_(g, 39, 57, 18, 23, PAL.out);
+    for (let i = 0; i < 6; i++) R_(g, 8 + i * 15, 66, 8, 2, PAL.b1);
   } else if (lv === 3) {
-    box(g, 4, 2, 40, 38, PAL.c1, PAL.c2, PAL.c0);
-    for (let j = 0; j < 6; j++) R_(g, 6, 5 + j * 6, 36, 3, (j & 1) ? PAL.gl1 : PAL.gl0);
-    for (let j = 0; j < 6; j++) for (let i = 0; i < 9; i++) if ((i * 3 + j) % 4) R_(g, 7 + i * 4, 5 + j * 6, 2, 3, PAL.gl2);
-    R_(g, 18, 34, 12, 6, PAL.gl0); R_(g, 23, 34, 2, 6, PAL.m3);
+    box(g, 8, 4, 80, 76, [PAL.c3, PAL.c2, PAL.c1, PAL.c0], PAL.c4, PAL.out);
+    for (let j = 0; j < 6; j++) { R_(g, 12, 10 + j * 12, 72, 6, (j & 1) ? PAL.gl1 : PAL.gl0); R_(g, 12, 10 + j * 12, 72, 1, PAL.gl2); for (let i = 0; i < 9; i++) if ((i * 3 + j) % 4) R_(g, 14 + i * 8, 11 + j * 12, 4, 4, PAL.gl2); R_(g, 12, 16 + j * 12, 72, 1, PAL.out); }
+    R_(g, 36, 68, 24, 12, PAL.gl0); R_(g, 46, 68, 4, 12, PAL.m3); O_(g, 35, 67, 26, 13, PAL.out);
+    R_(g, 30, 0, 36, 5, PAL.m1); R_(g, 31, 1, 34, 1, PAL.m3);
   } else {
-    box(g, 8, 0, 32, 40, PAL.gl0, PAL.gl1, PAL.w0);
-    for (let j = 0; j < 9; j++) for (let i = 0; i < 7; i++) R_(g, 10 + i * 4, 2 + j * 4, 3, 3, ((i + j) % 3) ? PAL.gl2 : PAL.gl1);
-    R_(g, 10, 0, 28, 1, PAL.m3); R_(g, 22, -1, 4, 2, PAL.m2);
-    box(g, 2, 24, 8, 16, PAL.c1, PAL.c2, PAL.c0); box(g, 38, 20, 8, 20, PAL.c1, PAL.c2, PAL.c0);
-    windows(g, 2, 25, 8, 14, 1, 3, PAL.win, PAL.winOff, 0.8, 7); windows(g, 38, 21, 8, 18, 1, 4, PAL.win, PAL.winOff, 0.8, 9);
+    box(g, 16, -2, 64, 82, [PAL.gl2, PAL.gl1, PAL.gl0, PAL.w0], PAL.gl3, PAL.out);
+    for (let j = 0; j < 9; j++) for (let i = 0; i < 7; i++) { const t = (i + j) % 3; R_(g, 20 + i * 8, 2 + j * 8, 6, 6, t === 0 ? PAL.gl3 : t === 1 ? PAL.gl2 : PAL.gl1); P(g, 20 + i * 8, 2 + j * 8, PAL.white); }
+    for (let j = 0; j < 10; j++) R_(g, 17, 1 + j * 8, 62, 1, PAL.out); for (let i = 1; i < 8; i++) R_(g, 19 + i * 8, -1, 1, 80, PAL.out);
+    R_(g, 20, -3, 56, 2, PAL.m3); R_(g, 44, -8, 8, 5, PAL.m2); R_(g, 47, -16, 2, 8, PAL.m3); P(g, 48, -17, PAL.red);
+    box(g, 2, 48, 16, 32, [PAL.c2, PAL.c1], PAL.c3, PAL.c0); box(g, 78, 40, 16, 40, [PAL.c2, PAL.c1], PAL.c3, PAL.c0);
+    windows(g, 2, 50, 16, 28, 1, 3, PAL.win, PAL.winOff, 0.8, 7, 6, 5); windows(g, 78, 42, 16, 36, 1, 4, PAL.win, PAL.winOff, 0.8, 9, 6, 5);
   }
   return c;
 }
+function tank(g, x, y, w, h) { grad(g, x, y, w, h, [PAL.m3, PAL.m2, PAL.m1, PAL.m0]); R_(g, x + 2, y + 4, 2, h - 10, PAL.m4); O_(g, x, y, w, h, PAL.out); R_(g, x + 1, y, w - 2, 1, PAL.m4); R_(g, x - 2, y + h - 3, w + 4, 4, PAL.m0); O_(g, x - 2, y + h - 3, w + 4, 4, PAL.out); for (let j = y + 8; j < y + h - 6; j += 8) R_(g, x + 1, j, w - 2, 1, PAL.m1); }
+function sawtooth(g, x, y, w, n) { const s = w / n | 0; for (let i = 0; i < n; i++) { for (let j = 0; j < 8; j++) { const ww = Math.round(s * (j + 1) / 8); R_(g, x + i * s + (s - ww), y + j, ww, 1, j < 3 ? PAL.m2 : PAL.m1); R_(g, x + i * s + (s - ww), y + j, Math.max(1, ww >> 1), 1, PAL.gl1); } R_(g, x + i * s, y, 1, 8, PAL.out); } R_(g, x, y + 8, w, 1, PAL.out); }
 function paintI(lv) {
-  const [c, g] = mk(48, 48);
-  grassInto(g, 0, 0, 48, 48, 300 + lv);
-  R_(g, 0, 0, 48, 48, PAL.dirt); D_(g, 0, 0, 48, 48, PAL.dirt, PAL.dirt2);
-  O_(g, 0, 0, 48, 48, PAL.m0);
+  const [c, g] = mk(TS * 3, TS * 3);
+  R_(g, 0, 0, 96, 96, PAL.dirt); D_(g, 0, 0, 96, 96, PAL.dirt, PAL.dirt2); const r = rng(300 + lv);
+  for (let i = 0; i < 30; i++) P(g, r.int(96), r.int(96), PAL.dirt3);
+  for (let i = 0; i < 96; i += 4) { R_(g, i, 0, 2, 1, PAL.m0); R_(g, i, 95, 2, 1, PAL.m0); R_(g, 0, i, 1, 2, PAL.m0); R_(g, 95, i, 1, 2, PAL.m0); }
   if (lv === 1) {
-    box(g, 4, 20, 24, 20, PAL.m1, PAL.m2, PAL.m0); R_(g, 5, 18, 22, 3, PAL.b1); R_(g, 5, 18, 22, 1, PAL.b2);
-    R_(g, 8, 32, 6, 8, PAL.m0); R_(g, 18, 26, 6, 5, PAL.winOff);
-    R_(g, 33, 16, 10, 24, PAL.m2); R_(g, 34, 14, 8, 3, PAL.m3); R_(g, 36, 18, 1, 20, PAL.m3); R_(g, 33, 40, 10, 2, PAL.m0);
+    box(g, 6, 36, 56, 44, [PAL.m2, PAL.m1, PAL.m0], PAL.m3, PAL.out); R_(g, 4, 32, 60, 6, PAL.b1); R_(g, 4, 32, 60, 1, PAL.b3); R_(g, 4, 37, 60, 1, PAL.b0);
+    R_(g, 14, 60, 16, 20, PAL.m0); R_(g, 15, 61, 14, 18, PAL.winOff); for (let j = 0; j < 4; j++) R_(g, 15, 63 + j * 4, 14, 1, PAL.m0); O_(g, 13, 59, 18, 21, PAL.out);
+    R_(g, 38, 46, 14, 10, PAL.winOff); R_(g, 39, 47, 5, 3, PAL.win); O_(g, 37, 45, 16, 12, PAL.out);
+    tank(g, 68, 28, 22, 52);
   } else if (lv === 2) {
-    box(g, 3, 14, 34, 26, PAL.b1, PAL.b2, PAL.b0);
-    for (let i = 0; i < 4; i++) { R_(g, 4 + i * 8, 10, 8, 5, PAL.m1); R_(g, 4 + i * 8, 10, 4, 5, PAL.gl1); R_(g, 4 + i * 8, 10, 8, 1, PAL.m3); }
-    windows(g, 3, 20, 34, 18, 5, 2, PAL.win, PAL.winOff, 0.5, 3);
-    chimney(g, 40, 8, 32);
+    box(g, 6, 30, 70, 50, [PAL.b2, PAL.b1, PAL.b0], PAL.b3, PAL.out); sawtooth(g, 6, 20, 70, 4);
+    windows(g, 8, 40, 66, 36, 5, 2, PAL.win, PAL.winOff, 0.5, 3, 6, 6);
+    R_(g, 32, 64, 18, 16, PAL.m0); R_(g, 33, 65, 16, 14, PAL.winOff); for (let j = 0; j < 3; j++) R_(g, 33, 68 + j * 4, 16, 1, PAL.m0); O_(g, 31, 63, 20, 17, PAL.out);
+    chimney(g, 82, 10, 7, 70); R_(g, 83, 12, 1, 66, PAL.c2);
   } else if (lv === 3) {
-    box(g, 2, 16, 44, 24, PAL.m1, PAL.m2, PAL.m0);
-    for (let i = 0; i < 5; i++) { R_(g, 3 + i * 8, 12, 8, 5, PAL.m0); R_(g, 3 + i * 8, 12, 4, 5, PAL.gl1); R_(g, 3 + i * 8, 12, 8, 1, PAL.m3); }
-    windows(g, 2, 22, 44, 16, 7, 2, PAL.win, PAL.winOff, 0.6, 5);
-    chimney(g, 8, 2, 14); chimney(g, 36, 4, 12);
-    R_(g, 16, 32, 16, 8, PAL.m0); R_(g, 17, 33, 14, 6, PAL.winOff);
+    box(g, 4, 34, 88, 46, [PAL.m2, PAL.m1, PAL.m0], PAL.m3, PAL.out); sawtooth(g, 4, 24, 88, 5);
+    windows(g, 6, 44, 84, 30, 7, 2, PAL.win, PAL.winOff, 0.6, 5, 6, 6);
+    R_(g, 34, 64, 30, 16, PAL.m0); R_(g, 35, 65, 28, 14, PAL.winOff); O_(g, 33, 63, 32, 17, PAL.out);
+    chimney(g, 14, 4, 7, 32); chimney(g, 72, 8, 7, 28);
+    R_(g, 0, 84, 96, 4, PAL.m1); R_(g, 0, 85, 96, 1, PAL.m3);
   } else {
-    box(g, 2, 18, 30, 22, PAL.m0, PAL.m1, PAL.out);
-    for (let i = 0; i < 4; i++) { R_(g, 3 + i * 7, 14, 7, 5, PAL.m1); R_(g, 3 + i * 7, 14, 3, 5, PAL.gl2); R_(g, 3 + i * 7, 14, 7, 1, PAL.m3); }
-    windows(g, 2, 24, 30, 14, 5, 2, PAL.win, PAL.winOff, 0.7, 8);
-    chimney(g, 6, 2, 16); chimney(g, 16, 4, 14); chimney(g, 26, 1, 17);
-    R_(g, 35, 22, 10, 18, PAL.m2); R_(g, 36, 20, 8, 3, PAL.m3); R_(g, 38, 24, 1, 14, PAL.m3); R_(g, 35, 40, 10, 2, PAL.m0);
-    R_(g, 32, 30, 4, 2, PAL.m1); R_(g, 33, 30, 1, 10, PAL.m1); R_(g, 10, 40, 20, 3, PAL.m1); R_(g, 10, 41, 20, 1, PAL.m2);
+    box(g, 4, 36, 60, 44, [PAL.m1, PAL.m0, PAL.out], PAL.m2, PAL.out); sawtooth(g, 4, 26, 60, 4);
+    windows(g, 6, 46, 56, 28, 5, 2, PAL.win, PAL.winOff, 0.7, 8, 6, 6);
+    chimney(g, 12, 4, 7, 34); chimney(g, 32, 8, 7, 30); chimney(g, 52, 2, 7, 36);
+    tank(g, 70, 34, 22, 46);
+    R_(g, 64, 60, 8, 3, PAL.m2); R_(g, 65, 60, 1, 20, PAL.m2); R_(g, 66, 61, 6, 1, PAL.m0); R_(g, 20, 80, 40, 6, PAL.m1); R_(g, 20, 81, 40, 1, PAL.m3); O_(g, 19, 79, 42, 8, PAL.out);
   }
   return c;
 }
 function paintCoal() {
-  const [c, g] = mk(64, 64);
-  R_(g, 0, 0, 64, 64, PAL.dirt); D_(g, 0, 0, 64, 64, PAL.dirt, PAL.dirt2); O_(g, 0, 0, 64, 64, PAL.m0);
-  box(g, 4, 22, 56, 36, PAL.m1, PAL.m2, PAL.m0);
-  R_(g, 6, 18, 52, 5, PAL.m0); R_(g, 6, 18, 52, 1, PAL.m3);
-  for (let i = 0; i < 6; i++) R_(g, 8 + i * 9, 30, 5, 6, (i % 2) ? PAL.gl1 : PAL.winOff);
-  R_(g, 26, 46, 12, 12, PAL.out); R_(g, 28, 48, 8, 10, PAL.winOff);
-  chimney(g, 12, 2, 22); chimney(g, 46, 4, 20);
-  R_(g, 20, 40, 24, 4, PAL.b0); for (let i = 0; i < 12; i++) P(g, 20 + i * 2, 41, PAL.f1);
-  R_(g, 4, 58, 56, 4, PAL.rub0); for (let i = 0; i < 20; i++) P(g, 5 + i * 3 - (i & 1), 59 + (i & 1), PAL.rub1);
+  const [c, g] = mk(TS * 4, TS * 4);
+  R_(g, 0, 0, 128, 128, PAL.dirt); D_(g, 0, 0, 128, 128, PAL.dirt, PAL.dirt2); const r = rng(401);
+  for (let i = 0; i < 40; i++) P(g, r.int(128), r.int(128), PAL.dirt3);
+  for (let i = 0; i < 128; i += 4) { R_(g, i, 0, 2, 1, PAL.m0); R_(g, i, 127, 2, 1, PAL.m0); R_(g, 0, i, 1, 2, PAL.m0); R_(g, 127, i, 1, 2, PAL.m0); }
+  box(g, 8, 44, 112, 72, [PAL.m2, PAL.m1, PAL.m0], PAL.m3, PAL.out);
+  R_(g, 12, 36, 104, 10, PAL.m0); R_(g, 12, 36, 104, 1, PAL.m3); R_(g, 12, 45, 104, 1, PAL.out);
+  for (let i = 0; i < 6; i++) { R_(g, 16 + i * 18, 60, 10, 12, (i & 1) ? PAL.gl1 : PAL.winOff); R_(g, 16 + i * 18, 60, 3, 1, PAL.gl2); O_(g, 15 + i * 18, 59, 12, 14, PAL.out); }
+  R_(g, 52, 92, 24, 24, PAL.out); R_(g, 56, 96, 16, 20, PAL.winOff); for (let j = 0; j < 4; j++) R_(g, 56, 100 + j * 4, 16, 1, PAL.m0);
+  for (const x of [24, 92]) { grad(g, x, 4, 12, 42, [PAL.c2, PAL.c1, PAL.c0]); for (let j = 0; j < 4; j++) R_(g, x, 8 + j * 10, 12, 4, (j & 1) ? PAL.white : PAL.red); R_(g, x + 1, 4, 1, 42, PAL.c3); O_(g, x, 4, 12, 42, PAL.out); R_(g, x - 2, 2, 16, 4, PAL.m0); O_(g, x - 2, 2, 16, 4, PAL.out); }
+  R_(g, 40, 80, 48, 8, PAL.b0); for (let i = 0; i < 12; i++) P(g, 42 + i * 4, 83, PAL.f1); O_(g, 39, 79, 50, 10, PAL.out);
+  for (let i = 0; i < 10; i++) { const x = 8 + i * 11, y = 116 + (i & 1) * 3; R_(g, x, y, 10, 8, PAL.rub0); R_(g, x + 2, y, 6, 2, PAL.rub1); P(g, x + 3, y + 1, PAL.rub2); }
   return c;
 }
 function paintNuke() {
-  const [c, g] = mk(64, 64);
-  grassInto(g, 0, 0, 64, 64, 404);
-  R_(g, 2, 2, 60, 60, PAL.c0); D_(g, 2, 2, 60, 60, PAL.c0, PAL.c1); O_(g, 0, 0, 64, 64, PAL.m0);
-  /* the cooling tower: a waisted cylinder */
-  for (let j = 0; j < 40; j++) { const w = 24 - Math.round(6 * Math.sin(j / 40 * Math.PI)); const x = 44 - w / 2 | 0; R_(g, x, 14 + j, w, 1, PAL.c2); P(g, x, 14 + j, PAL.c3); R_(g, x + w - 2, 14 + j, 2, 1, PAL.c0); }
-  R_(g, 33, 12, 22, 3, PAL.c1); R_(g, 34, 12, 20, 1, PAL.c3);
+  const [c, g] = mk(TS * 4, TS * 4);
+  grassInto(g, 0, 0, 128, 128, 404);
+  R_(g, 4, 4, 120, 120, PAL.c1); D_(g, 4, 4, 120, 120, PAL.c1, PAL.c2); O_(g, 4, 4, 120, 120, PAL.m0); O_(g, 5, 5, 118, 118, PAL.c3);
+  /* the cooling tower: a waisted cylinder in four tones */
+  for (let j = 0; j < 80; j++) { const w = 48 - Math.round(14 * Math.sin(j / 80 * Math.PI)); const x = 88 - w / 2 | 0; grad(g, x, 28 + j, w, 1, [PAL.c3]); R_(g, x, 28 + j, w, 1, PAL.c2); R_(g, x, 28 + j, w >> 2, 1, PAL.c3); R_(g, x + w - (w >> 2), 28 + j, w >> 2, 1, PAL.c1); R_(g, x + w - 2, 28 + j, 2, 1, PAL.c0); P(g, x, 28 + j, PAL.out); P(g, x + w - 1, 28 + j, PAL.out); }
+  R_(g, 66, 24, 44, 6, PAL.c1); R_(g, 67, 24, 42, 1, PAL.c3); O_(g, 66, 24, 44, 6, PAL.out); R_(g, 70, 26, 36, 2, PAL.winOff);
   /* the dome */
-  for (let j = 0; j < 14; j++) { const w = Math.round(Math.sqrt(14 * 14 - (14 - j) * (14 - j)) * 2); R_(g, 18 - w / 2 | 0, 30 + j - 14, w, 1, j < 5 ? PAL.c3 : PAL.c2); }
-  R_(g, 4, 30, 28, 24, PAL.c1); R_(g, 5, 31, 1, 22, PAL.c2); R_(g, 30, 31, 1, 22, PAL.c0); O_(g, 4, 30, 28, 24, PAL.out);
-  R_(g, 8, 36, 20, 2, PAL.rad1); R_(g, 10, 44, 16, 8, PAL.gl0); R_(g, 12, 46, 12, 4, PAL.rad2);
-  R_(g, 36, 56, 20, 4, PAL.m0); R_(g, 36, 56, 20, 1, PAL.m2);
+  for (let j = 0; j < 28; j++) { const w = Math.round(Math.sqrt(28 * 28 - (28 - j) * (28 - j)) * 2); const x = 36 - w / 2 | 0; R_(g, x, 60 + j - 28, w, 1, j < 8 ? PAL.c4 : j < 18 ? PAL.c3 : PAL.c2); P(g, x, 60 + j - 28, PAL.out); P(g, x + w - 1, 60 + j - 28, PAL.out); }
+  box(g, 8, 60, 56, 48, [PAL.c2, PAL.c1, PAL.c0], PAL.c3, PAL.out);
+  R_(g, 16, 72, 40, 4, PAL.rad1); R_(g, 16, 72, 40, 1, PAL.rad2); R_(g, 20, 88, 32, 16, PAL.gl0); R_(g, 24, 92, 24, 8, PAL.rad2); R_(g, 30, 94, 12, 4, PAL.rad1); O_(g, 19, 87, 34, 18, PAL.out);
+  R_(g, 72, 112, 40, 8, PAL.m0); R_(g, 72, 112, 40, 1, PAL.m2); O_(g, 72, 112, 40, 8, PAL.out);
   return c;
 }
 function paintPolice() {
-  const [c, g] = mk(48, 48);
-  grassInto(g, 0, 0, 48, 48, 505);
-  R_(g, 0, 40, 48, 8, PAL.r1); R_(g, 0, 40, 48, 1, PAL.curb);
-  box(g, 4, 12, 40, 28, PAL.roofB2, PAL.blue, PAL.roofB);
-  R_(g, 6, 9, 36, 4, PAL.c1); R_(g, 6, 9, 36, 1, PAL.c3);
-  windows(g, 4, 18, 40, 10, 5, 1, PAL.win, PAL.winOff, 0.9, 2);
-  R_(g, 20, 30, 8, 10, PAL.c3); R_(g, 21, 31, 6, 8, PAL.gl1); R_(g, 23, 31, 2, 8, PAL.gl2);
-  /* the badge over the door */
-  for (const [x, y] of [[23, 13], [24, 13], [22, 14], [25, 14], [22, 15], [25, 15], [23, 16], [24, 16]]) P(g, x, y, PAL.gold);
-  R_(g, 22, 8, 1, 4, PAL.red); R_(g, 25, 8, 1, 4, PAL.blue); R_(g, 23, 7, 2, 1, PAL.white);
+  const [c, g] = mk(TS * 3, TS * 3);
+  grassInto(g, 0, 0, 96, 96, 505);
+  R_(g, 0, 80, 96, 16, PAL.r1); R_(g, 0, 80, 96, 2, PAL.curb); R_(g, 0, 82, 96, 1, PAL.curb2);
+  box(g, 8, 24, 80, 56, [PAL.roofB3, PAL.roofB2, PAL.roofB], PAL.blue, PAL.out);
+  R_(g, 12, 18, 72, 8, PAL.c1); R_(g, 12, 18, 72, 1, PAL.c3); R_(g, 12, 25, 72, 1, PAL.c0); O_(g, 11, 17, 74, 10, PAL.out);
+  windows(g, 10, 36, 76, 20, 5, 1, PAL.win, PAL.winOff, 0.9, 2, 8, 9);
+  R_(g, 40, 60, 16, 20, PAL.c3); R_(g, 42, 62, 12, 16, PAL.gl1); R_(g, 43, 63, 3, 14, PAL.gl2); R_(g, 47, 62, 2, 18, PAL.m3); O_(g, 39, 59, 18, 21, PAL.out);
+  const star = [[48, 4], [47, 5], [48, 5], [49, 5], [44, 6], [45, 6], [46, 6], [47, 6], [48, 6], [49, 6], [50, 6], [51, 6], [52, 6], [45, 7], [46, 7], [47, 7], [48, 7], [49, 7], [50, 7], [51, 7], [46, 8], [47, 8], [48, 8], [49, 8], [50, 8], [45, 9], [46, 9], [47, 9], [49, 9], [50, 9], [51, 9], [45, 10], [46, 10], [50, 10], [51, 10]];
+  R_(g, 32, 2, 32, 12, PAL.white); O_(g, 31, 1, 34, 14, PAL.out); for (const [x, y] of star) P(g, x, y + 2, PAL.gold);
+  g.font = "16px Pride"; g.textBaseline = "top"; g.textAlign = "center"; g.fillStyle = PAL.roofB; g.fillText("POLICE", 48, 26 + 46);
+  R_(g, 74, 62, 4, 12, PAL.red); R_(g, 80, 62, 4, 12, PAL.blue); R_(g, 75, 63, 1, 10, PAL.white); R_(g, 81, 63, 1, 10, PAL.white); O_(g, 73, 61, 12, 14, PAL.out);
   return c;
 }
 function paintFireSt() {
-  const [c, g] = mk(48, 48);
-  grassInto(g, 0, 0, 48, 48, 606);
-  R_(g, 0, 40, 48, 8, PAL.r1); R_(g, 0, 40, 48, 1, PAL.curb);
-  box(g, 3, 10, 42, 30, PAL.b1, PAL.b2, PAL.b0);
-  R_(g, 5, 7, 38, 4, PAL.c1); R_(g, 5, 7, 38, 1, PAL.c3);
-  for (const x of [8, 27]) { R_(g, x, 22, 13, 18, PAL.red); R_(g, x + 1, 23, 11, 16, PAL.b3); for (let j = 0; j < 4; j++) R_(g, x + 1, 24 + j * 4, 11, 1, PAL.b0); }
-  windows(g, 3, 13, 42, 8, 6, 1, PAL.win, PAL.winOff, 1, 4);
-  R_(g, 38, 2, 5, 9, PAL.c2); R_(g, 39, 1, 3, 2, PAL.red); P(g, 40, 0, PAL.f0);
+  const [c, g] = mk(TS * 3, TS * 3);
+  grassInto(g, 0, 0, 96, 96, 606);
+  R_(g, 0, 80, 96, 16, PAL.r1); R_(g, 0, 80, 96, 2, PAL.curb); R_(g, 0, 82, 96, 1, PAL.curb2);
+  box(g, 6, 22, 84, 58, [PAL.b2, PAL.b1, PAL.b0], PAL.b3, PAL.out);
+  R_(g, 10, 16, 76, 7, PAL.c1); R_(g, 10, 16, 76, 1, PAL.c3); O_(g, 9, 15, 78, 9, PAL.out);
+  for (const x of [14, 54]) { R_(g, x, 46, 28, 34, PAL.red); R_(g, x + 1, 47, 26, 32, PAL.b3); for (let j = 0; j < 7; j++) R_(g, x + 1, 50 + j * 4, 26, 1, PAL.b0); R_(g, x + 12, 70, 4, 2, PAL.m3); O_(g, x - 1, 45, 30, 35, PAL.out); }
+  windows(g, 8, 26, 80, 16, 6, 1, PAL.win, PAL.winOff, 1, 4, 7, 7);
+  R_(g, 74, 2, 12, 18, PAL.c2); R_(g, 75, 3, 1, 16, PAL.c3); R_(g, 72, 0, 16, 4, PAL.roofR); O_(g, 73, 1, 14, 20, PAL.out); R_(g, 78, 10, 4, 5, PAL.gold); P(g, 78, 10, PAL.win2);
+  g.font = "16px Pride"; g.textBaseline = "top"; g.textAlign = "center"; g.fillStyle = PAL.white; g.fillText("FIRE", 40, 10);
   return c;
 }
 function paintStadium() {
-  const [c, g] = mk(64, 64);
-  grassInto(g, 0, 0, 64, 64, 707);
-  for (let j = 0; j < 56; j++) { const w = Math.round(Math.sqrt(1 - Math.pow((j - 28) / 28, 2)) * 58); R_(g, 32 - w / 2 | 0, 4 + j, w, 1, PAL.c1); }
-  for (let j = 0; j < 44; j++) { const w = Math.round(Math.sqrt(1 - Math.pow((j - 22) / 22, 2)) * 44); R_(g, 32 - w / 2 | 0, 10 + j, w, 1, (j & 1) ? PAL.c2 : PAL.c0); }
-  for (let j = 0; j < 30; j++) { const w = Math.round(Math.sqrt(1 - Math.pow((j - 15) / 15, 2)) * 30); R_(g, 32 - w / 2 | 0, 17 + j, w, 1, (j & 2) ? PAL.g2 : PAL.g1); }
-  R_(g, 31, 19, 2, 26, PAL.white); R_(g, 20, 31, 24, 1, PAL.white); R_(g, 24, 20, 16, 1, PAL.white); R_(g, 24, 42, 16, 1, PAL.white);
-  for (const x of [6, 54]) { R_(g, x, 0, 2, 12, PAL.m1); R_(g, x - 2, 0, 6, 3, PAL.win); }
+  const [c, g] = mk(TS * 4, TS * 4);
+  grassInto(g, 0, 0, 128, 128, 707);
+  for (let j = 0; j < 112; j++) { const w = Math.round(Math.sqrt(1 - Math.pow((j - 56) / 56, 2)) * 116); R_(g, 64 - w / 2 | 0, 8 + j, w, 1, PAL.c1); P(g, 64 - w / 2 | 0, 8 + j, PAL.out); P(g, 64 + w / 2 - 1 | 0, 8 + j, PAL.out); }
+  for (let j = 0; j < 88; j++) { const w = Math.round(Math.sqrt(1 - Math.pow((j - 44) / 44, 2)) * 88); R_(g, 64 - w / 2 | 0, 20 + j, w, 1, (j & 2) ? PAL.c2 : PAL.c0); }
+  for (let j = 0; j < 60; j++) { const w = Math.round(Math.sqrt(1 - Math.pow((j - 30) / 30, 2)) * 60); R_(g, 64 - w / 2 | 0, 34 + j, w, 1, (j & 4) ? PAL.g2 : PAL.g1); }
+  R_(g, 63, 38, 2, 52, PAL.white); R_(g, 40, 62, 48, 1, PAL.white); R_(g, 48, 40, 32, 1, PAL.white); R_(g, 48, 86, 32, 1, PAL.white); O_(g, 36, 36, 56, 56, "rgba(255,255,255,.5)");
+  for (const [x, y] of [[10, 6], [106, 6], [10, 108], [106, 108]]) { R_(g, x + 4, y + 8, 3, 14, PAL.m1); R_(g, x, y, 12, 8, PAL.win); R_(g, x + 1, y + 1, 10, 2, PAL.win2); O_(g, x - 1, y - 1, 14, 10, PAL.out); }
   return c;
 }
 function paintRoad(mask, bridge) {
-  /* mask bits: 1 N, 2 E, 4 S, 8 W */
-  const [c, g] = mk(16, 16);
-  if (bridge) { R_(g, 0, 0, 16, 16, PAL.w1); R_(g, 0, 0, 16, 16, PAL.w1); } else grassInto(g, 0, 0, 16, 16, 808 + mask);
-  const n = mask & 1, e = mask & 2, s = mask & 4, w = mask & 8;
-  const col = PAL.r0;
-  R_(g, 3, 3, 10, 10, col);
-  if (n) R_(g, 3, 0, 10, 3, col); if (s) R_(g, 3, 13, 10, 3, col); if (w) R_(g, 0, 3, 3, 10, col); if (e) R_(g, 13, 3, 3, 10, col);
-  const curb = bridge ? PAL.m2 : PAL.curb;
-  if (!n) R_(g, 3, 3, 10, 1, curb); if (!s) R_(g, 3, 12, 10, 1, curb); if (!w) R_(g, 3, 3, 1, 10, curb); if (!e) R_(g, 12, 3, 1, 10, curb);
-  if (n) { R_(g, 3, 0, 1, 3, curb); R_(g, 12, 0, 1, 3, curb); } if (s) { R_(g, 3, 13, 1, 3, curb); R_(g, 12, 13, 1, 3, curb); }
-  if (w) { R_(g, 0, 3, 3, 1, curb); R_(g, 0, 12, 3, 1, curb); } if (e) { R_(g, 13, 3, 3, 1, curb); R_(g, 13, 12, 3, 1, curb); }
-  /* lane dashes along straight runs */
-  if ((n || s) && !e && !w) for (let y = 1; y < 16; y += 4) R_(g, 7, y, 2, 2, PAL.lane);
-  else if ((e || w) && !n && !s) for (let x = 1; x < 16; x += 4) R_(g, x, 7, 2, 2, PAL.lane);
-  if (bridge) { R_(g, 0, 0, 16, 16, "rgba(0,0,0,0)"); if (n || s) { R_(g, 2, 0, 1, 16, PAL.m1); R_(g, 13, 0, 1, 16, PAL.m1); } else { R_(g, 0, 2, 16, 1, PAL.m1); R_(g, 0, 13, 16, 1, PAL.m1); } }
+  const [c, g] = mk(TS, TS);
+  if (bridge) R_(g, 0, 0, 32, 32, PAL.w1); else grassInto(g, 0, 0, 32, 32, 808 + mask);
+  const n = mask & 1, e = mask & 2, s = mask & 4, w = mask & 8, m = 5, M = 27;
+  const col = bridge ? PAL.m1 : PAL.r0, col2 = bridge ? PAL.m2 : PAL.r1;
+  R_(g, m, m, M - m, M - m, col);
+  if (n) R_(g, m, 0, M - m, m, col); if (s) R_(g, m, M, M - m, 32 - M, col); if (w) R_(g, 0, m, m, M - m, col); if (e) R_(g, M, m, 32 - M, M - m, col);
+  const r = rng(900 + mask); for (let i = 0; i < 40; i++) { const x = r.int(32), y = r.int(32); if (x >= m && x < M && y >= m && y < M) P(g, x, y, col2); }
+  const curb = bridge ? PAL.m3 : PAL.curb, curb2 = bridge ? PAL.m4 : PAL.curb2;
+  const seg = (x, y, ww, hh) => { R_(g, x, y, ww, hh, curb); };
+  if (!n) { seg(m, m, M - m, 2); R_(g, m, m, M - m, 1, curb2); } if (!s) seg(m, M - 2, M - m, 2); if (!w) { seg(m, m, 2, M - m); R_(g, m, m, 1, M - m, curb2); } if (!e) seg(M - 2, m, 2, M - m);
+  if (n) { seg(m, 0, 2, m); seg(M - 2, 0, 2, m); } if (s) { seg(m, M, 2, 32 - M); seg(M - 2, M, 2, 32 - M); } if (w) { seg(0, m, m, 2); seg(0, M - 2, m, 2); } if (e) { seg(M, m, 32 - M, 2); seg(M, M - 2, 32 - M, 2); }
+  if ((n || s) && !e && !w) for (let y = 2; y < 32; y += 8) R_(g, 15, y, 2, 4, PAL.lane);
+  else if ((e || w) && !n && !s) for (let x = 2; x < 32; x += 8) R_(g, x, 15, 4, 2, PAL.lane);
+  if (bridge) { if (n || s) { R_(g, 3, 0, 1, 32, PAL.m0); R_(g, 28, 0, 1, 32, PAL.m0); for (let y = 2; y < 32; y += 6) { R_(g, 2, y, 3, 1, PAL.m2); R_(g, 27, y, 3, 1, PAL.m2); } } else { R_(g, 0, 3, 32, 1, PAL.m0); R_(g, 0, 28, 32, 1, PAL.m0); for (let x = 2; x < 32; x += 6) { R_(g, x, 2, 1, 3, PAL.m2); R_(g, x, 27, 1, 3, PAL.m2); } } }
   return c;
 }
 function paintWire(mask, over) {
-  const [c, g] = mk(16, 16);
-  if (!over) grassInto(g, 0, 0, 16, 16, 909 + mask);
-  const n = mask & 1, e = mask & 2, s = mask & 4, w = mask & 8;
-  const line = PAL.m0;
-  if (n) R_(g, 7, 0, 1, 8, line); if (s) R_(g, 7, 8, 1, 8, line); if (w) R_(g, 0, 7, 8, 1, line); if (e) R_(g, 8, 7, 8, 1, line);
-  if (!mask) { R_(g, 7, 2, 1, 12, line); }
-  /* the pole: a cross-arm and its shadow; over a road, just the pole */
-  R_(g, 7, 4, 2, 10, PAL.wood); R_(g, 7, 4, 1, 10, PAL.wood2);
-  if (!over) { R_(g, 5, 5, 6, 1, PAL.wood2); P(g, 5, 4, PAL.m3); P(g, 10, 4, PAL.m3); R_(g, 9, 13, 3, 1, PAL.g0); } else R_(g, 6, 5, 4, 1, PAL.wood2);
+  const [c, g] = mk(TS, TS);
+  if (!over) grassInto(g, 0, 0, 32, 32, 909 + mask);
+  const n = mask & 1, e = mask & 2, s = mask & 4, w = mask & 8, cx = 15, cy = 9;
+  const cable = (x1, y1) => { const steps = 16; for (let i = 0; i <= steps; i++) { const t = i / steps, x = Math.round(cx + (x1 - cx) * t), y = Math.round(cy + (y1 - cy) * t + Math.sin(t * Math.PI) * 2); P(g, x, y, PAL.out); } };
+  if (n) cable(cx, 0); if (s) cable(cx, 32); if (w) cable(0, cy); if (e) cable(32, cy);
+  if (!mask) { cable(cx, 2); cable(cx, 30); }
+  if (over) { R_(g, cx - 1, 8, 3, 10, PAL.wood); R_(g, cx - 1, 8, 1, 10, PAL.wood2); R_(g, cx - 4, 7, 9, 2, PAL.wood2); return c; }
+  R_(g, cx + 1, 29, 8, 1, PAL.g0);
+  R_(g, cx - 1, 7, 3, 22, PAL.wood); R_(g, cx - 1, 7, 1, 22, PAL.wood2); R_(g, cx + 1, 7, 1, 22, PAL.out);
+  R_(g, cx - 6, 6, 13, 2, PAL.wood2); R_(g, cx - 6, 6, 13, 1, PAL.wood3); R_(g, cx - 6, 8, 13, 1, PAL.out);
+  R_(g, cx - 5, 4, 2, 2, PAL.m3); R_(g, cx + 4, 4, 2, 2, PAL.m3); P(g, cx - 5, 4, PAL.white); P(g, cx + 4, 4, PAL.white);
   return c;
 }
+function car(g, x, y, col, flip) {
+  R_(g, x, y + 2, 10, 4, col); R_(g, x + (flip ? 1 : 3), y, 6, 3, col); R_(g, x + (flip ? 2 : 4), y, 4, 2, PAL.gl2); P(g, x + (flip ? 2 : 4), y, PAL.gl3);
+  R_(g, x, y + 3, 10, 1, "rgba(0,0,0,.25)"); R_(g, x + 1, y + 6, 2, 1, PAL.out); R_(g, x + 7, y + 6, 2, 1, PAL.out); P(g, x + (flip ? 0 : 9), y + 3, PAL.win2); O_(g, x - 1, y + 1, 12, 6, PAL.out); R_(g, x + (flip ? 0 : 2), y - 1, 8, 1, PAL.out);
+}
 function paintTraffic(level) {
-  const [c, g] = mk(16, 16);
-  const cars = level === 1 ? [[2, 4, PAL.red], [9, 10, PAL.gl2]] : [[1, 4, PAL.red], [6, 4, PAL.gold], [11, 4, PAL.white], [2, 10, PAL.gl2], [8, 10, PAL.violet], [12, 10, PAL.red]];
-  for (const [x, y, col] of cars) { R_(g, x, y, 4, 2, col); P(g, x + 1, y, PAL.out); P(g, x + 3, y + 1, PAL.out); }
+  const [c, g] = mk(TS, TS);
+  if (level === 1) { car(g, 3, 7, PAL.red, false); car(g, 18, 19, PAL.gl1, true); }
+  else { car(g, 1, 7, PAL.red, false); car(g, 15, 7, PAL.gold, false); car(g, 3, 19, PAL.violet, true); car(g, 18, 19, PAL.white, true); }
   return c;
 }
 function paintWater(f) {
-  const [c, g] = mk(16, 16);
-  R_(g, 0, 0, 16, 16, PAL.w1);
+  const [c, g] = mk(TS, TS);
+  R_(g, 0, 0, 32, 32, PAL.w1);
   const r = rng(77);
-  for (let i = 0; i < 40; i++) P(g, r.int(16), r.int(16), PAL.w0);
-  for (let i = 0; i < 5; i++) { const x = (r.int(16) + f * 2) % 16, y = r.int(16); R_(g, x, y, 3, 1, PAL.w3); P(g, (x + 3) % 16, y, PAL.w2); }
-  if (f & 1) for (let i = 0; i < 3; i++) P(g, r.int(16), r.int(16), PAL.foam);
+  for (let i = 0; i < 90; i++) P(g, r.int(32), r.int(32), PAL.w0);
+  for (let i = 0; i < 40; i++) P(g, r.int(32), r.int(32), PAL.w2);
+  for (let i = 0; i < 7; i++) { const x = (r.int(32) + f * 3) % 32, y = r.int(32), len = 3 + r.int(5); R_(g, x, y, len, 1, PAL.w3); P(g, (x + len) % 32, y, PAL.w4); if (x + len > 32) R_(g, 0, y, x + len - 32, 1, PAL.w3); }
+  for (let i = 0; i < 3; i++) P(g, (r.int(32) + f * 5) % 32, r.int(32), PAL.foam);
   return c;
 }
 function paintTree(v) {
-  const [c, g] = mk(16, 16);
-  grassInto(g, 0, 0, 16, 16, 1010 + v);
-  const t = v ? [[4, 2, 9, 9], [7, 5, 7, 8]] : [[2, 4, 8, 8], [8, 1, 7, 8]];
-  for (const [x, y, w, h] of t) {
-    R_(g, x, y, w, h, PAL.t1); R_(g, x + 1, y + 1, w - 2, h - 2, PAL.t2); R_(g, x + 1, y + 1, 3, 2, PAL.t3);
-    R_(g, x + w - 2, y + 2, 1, h - 3, PAL.t0); R_(g, x + 1, y + h - 2, w - 2, 1, PAL.t0);
-    R_(g, x + w / 2 | 0, y + h, 2, 2, PAL.bark);
+  const [c, g] = mk(TS, TS);
+  grassInto(g, 0, 0, 32, 32, 1010 + v);
+  R_(g, 8, 28, 18, 2, PAL.g0);
+  if (v === 0) {
+    const blobs = [[4, 8, 14, 14], [14, 4, 14, 14], [10, 12, 14, 12]];
+    for (const [x, y, w, h] of blobs) { grad(g, x, y, w, h, [PAL.t2, PAL.t1, PAL.t0]); }
+    for (const [x, y, w, h] of blobs) { P(g, x, y, PAL.g1); P(g, x + w - 1, y, PAL.g1); P(g, x, y + h - 1, PAL.g1); P(g, x + w - 1, y + h - 1, PAL.g1); }
+    R_(g, 7, 10, 5, 3, PAL.t3); R_(g, 16, 6, 6, 3, PAL.t3); P(g, 17, 6, PAL.t4); P(g, 8, 10, PAL.t4); R_(g, 12, 15, 4, 2, PAL.t3);
+    R_(g, 14, 24, 4, 5, PAL.bark); R_(g, 14, 24, 1, 5, PAL.bark2);
+  } else {
+    R_(g, 14, 24, 4, 5, PAL.bark); R_(g, 14, 24, 1, 5, PAL.bark2);
+    for (let j = 0; j < 22; j++) { const w = 2 + Math.round(j * 1.1); const x = 16 - w / 2 | 0; R_(g, x, 3 + j, w, 1, j % 6 < 2 ? PAL.t0 : j % 6 < 4 ? PAL.t1 : PAL.t2); R_(g, x, 3 + j, Math.max(1, w >> 2), 1, PAL.t3); }
+    P(g, 16, 2, PAL.t4);
   }
   return c;
 }
 function paintRubble(v) {
-  const [c, g] = mk(16, 16);
-  R_(g, 0, 0, 16, 16, PAL.dirt); const r = rng(1200 + v);
-  for (let i = 0; i < 14; i++) { const x = r.int(14), y = r.int(14), s = 1 + r.int(2); R_(g, x, y, s + 1, s, PAL.rub1); P(g, x, y, PAL.rub2); P(g, x + s, y + s - 1, PAL.rub0); }
+  const [c, g] = mk(TS, TS);
+  R_(g, 0, 0, 32, 32, PAL.dirt); D_(g, 0, 0, 32, 32, PAL.dirt, PAL.dirt2); const r = rng(1200 + v);
+  for (let i = 0; i < 10; i++) { const x = r.int(26), y = r.int(26), s = 2 + r.int(4); R_(g, x, y, s + 2, s, PAL.rub1); R_(g, x, y, s, 1, PAL.rub2); P(g, x, y, PAL.rub3); R_(g, x + s + 1, y + 1, 1, s - 1, PAL.rub0); R_(g, x + 1, y + s - 1, s + 1, 1, PAL.rub0); }
   return c;
 }
 function paintFire(f) {
-  const [c, g] = mk(16, 16);
-  R_(g, 0, 0, 16, 16, PAL.rub0); const r = rng(1300 + f);
-  for (let i = 0; i < 10; i++) { const x = r.int(16), y = 6 + r.int(10), h = 4 + r.int(10); R_(g, x, 16 - h, 2, h, PAL.f2); R_(g, x, 16 - h + 2, 2, h - 2, PAL.f1); P(g, x, 16 - h + 4, PAL.f0); }
-  for (let i = 0; i < 4; i++) { const x = r.int(14); R_(g, x, 13, 3, 3, PAL.f3); }
-  for (let i = 0; i < 3; i++) P(g, r.int(16), r.int(5), PAL.smoke1);
+  const [c, g] = mk(TS, TS);
+  R_(g, 0, 0, 32, 32, PAL.rub0); D_(g, 0, 0, 32, 32, PAL.rub0, PAL.out); const r = rng(1300 + f);
+  for (let i = 0; i < 14; i++) { const x = r.int(30), h = 8 + r.int(20), w = 2 + r.int(2); R_(g, x, 32 - h, w, h, PAL.f3); R_(g, x, 32 - h + 3, w, h - 3, PAL.f2); R_(g, x, 32 - h + 8, w, Math.max(0, h - 10), PAL.f1); if (h > 14) R_(g, x, 32 - h + 12, 1, h - 14, PAL.f0); }
+  for (let i = 0; i < 6; i++) { const x = r.int(28); R_(g, x, 26, 5, 6, PAL.f3); R_(g, x + 1, 28, 3, 2, PAL.f2); }
+  for (let i = 0; i < 6; i++) P(g, r.int(32), r.int(10), PAL.smoke1);
   return c;
 }
 function paintPark() {
-  const [c, g] = mk(16, 16);
-  grassInto(g, 0, 0, 16, 16, 1400);
-  R_(g, 6, 0, 4, 16, PAL.sand); R_(g, 7, 0, 2, 16, PAL.dirt2);
-  R_(g, 1, 2, 4, 4, PAL.t2); P(g, 2, 3, PAL.t3); R_(g, 2, 6, 1, 1, PAL.bark);
-  R_(g, 11, 9, 4, 4, PAL.t2); P(g, 12, 10, PAL.t3); R_(g, 12, 13, 1, 1, PAL.bark);
-  P(g, 2, 11, PAL.red); P(g, 4, 13, PAL.gold); P(g, 12, 3, PAL.violet); P(g, 13, 5, PAL.white);
+  const [c, g] = mk(TS, TS);
+  grassInto(g, 0, 0, 32, 32, 1400);
+  for (let j = 0; j < 32; j++) { const x = 10 + Math.round(Math.sin(j / 10) * 3); R_(g, x, j, 6, 1, PAL.sand); P(g, x + 1 + (j & 1) * 3, j, PAL.dirt3); }
+  R_(g, 20, 18, 10, 8, PAL.w2); R_(g, 21, 19, 8, 6, PAL.w3); R_(g, 22, 20, 3, 1, PAL.w4); O_(g, 19, 17, 12, 10, PAL.w0);
+  grad(g, 2, 3, 8, 8, [PAL.t2, PAL.t1, PAL.t0]); P(g, 2, 3, PAL.g1); P(g, 9, 3, PAL.g1); P(g, 2, 10, PAL.g1); P(g, 9, 10, PAL.g1); R_(g, 3, 4, 3, 2, PAL.t3); R_(g, 5, 11, 2, 3, PAL.bark);
+  R_(g, 20, 4, 8, 2, PAL.wood3); R_(g, 20, 6, 8, 1, PAL.wood); R_(g, 20, 7, 1, 3, PAL.wood); R_(g, 27, 7, 1, 3, PAL.wood);
+  for (const [x, y, col] of [[3, 20, PAL.red], [6, 26, PAL.gold], [24, 10, PAL.violet], [28, 13, PAL.white], [2, 28, PAL.pink]]) { P(g, x, y, col); P(g, x + 1, y, col); P(g, x, y + 1, col); P(g, x + 1, y + 1, PAL.gold); }
   return c;
 }
 function paintBolt() {
-  const [c, g] = mk(16, 16);
-  for (const [x, y, w] of [[8, 1, 4], [7, 3, 4], [6, 5, 4], [5, 7, 6], [7, 9, 3], [6, 11, 3], [5, 13, 2]]) { R_(g, x, y, w, 2, PAL.gold); P(g, x, y, PAL.f0); }
-  for (const [x, y, w] of [[8, 1, 4], [7, 3, 4], [6, 5, 4], [5, 7, 6], [7, 9, 3], [6, 11, 3], [5, 13, 2]]) { P(g, x - 1, y, PAL.out); P(g, x + w, y + 1, PAL.out); }
+  const [c, g] = mk(TS, TS);
+  const rows = [[16, 2, 8], [14, 6, 8], [12, 10, 8], [10, 14, 12], [14, 18, 6], [12, 22, 6], [10, 26, 4]];
+  for (const [x, y, w] of rows) R_(g, x - 1, y - 1, w + 2, 6, PAL.out);
+  for (const [x, y, w] of rows) { R_(g, x, y, w, 4, PAL.gold); R_(g, x, y, w, 1, PAL.f0); P(g, x, y, PAL.white); }
   return c;
 }
-/* the kitten, 48 wide, two frames of a walk: SimPuma's monster */
 const KITTEN = [
   "................................................",
   "...........xx.....................xx............",
@@ -1820,48 +1870,53 @@ const KITTEN = [
   "................................................"
 ];
 function paintKitten(f) {
-  const [c, g] = mk(48, 48);
+  /* the 48-cell drawing at two pixels a cell, then the detail the room allows:
+     fur shading down the right, stripes, eye glints, whiskers */
+  const [c, g] = mk(TS * 3, TS * 3);
   const col = { x: PAL.out, p: PAL.puma2, a: PAL.puma0, e: PAL.out, y: PAL.eye, k: PAL.pupil, c: PAL.cream, n: PAL.pupil };
   for (let y = 0; y < 48; y++) for (let x = 0; x < 48; x++) {
     const ch = KITTEN[y][x];
     if (ch === ".") continue;
     let yy = y;
-    /* the walk: the legs swap height between frames */
     if (f && y >= 40 && ((x < 24) !== (f === 1))) { if (y > 45) continue; yy = y + 1; }
-    P(g, x, yy, col[ch]);
+    let cc = col[ch];
+    if (ch === "p" && x > 30 && y > 6) cc = PAL.puma1;
+    if (ch === "p" && x < 14 && y > 24) cc = PAL.puma3;
+    R_(g, x * 2, yy * 2, 2, 2, cc);
   }
-  /* stripes along the back, the tail's rings */
-  for (let i = 0; i < 6; i++) R_(g, 13 + i * 3, 26 + (i & 1), 1, 6, PAL.puma1);
-  R_(g, 41, 32 + f, 2, 1, PAL.puma0);
+  for (let i = 0; i < 6; i++) R_(g, 26 + i * 6, 52 + (i & 1) * 2, 2, 12, PAL.puma1);
+  for (const [x, y] of [[26, 20], [66, 20]]) { P(g, x, y, PAL.white); P(g, x + 1, y, PAL.white); P(g, x, y + 1, PAL.white); }
+  R_(g, 44, 32, 8, 2, PAL.pink);
+  for (const [x, dir] of [[14, -1], [82, 1]]) for (let i = 0; i < 3; i++) R_(g, x + (dir < 0 ? -6 : 0), 30 + i * 4, 6, 1, PAL.out);
+  R_(g, 82, 64 + f * 2, 4, 2, PAL.puma0);
   return c;
 }
 function paintTornado(f) {
-  const [c, g] = mk(32, 48);
+  const [c, g] = mk(TS * 2, TS * 3);
   const r = rng(1500 + f);
-  for (let j = 0; j < 48; j++) {
-    const w = 4 + Math.round(j / 48 * 22) + (f ? Math.round(Math.sin(j / 3) * 2) : Math.round(Math.cos(j / 3) * 2));
-    const x = 16 - w / 2 + Math.round(Math.sin(j / 5 + f) * 2) | 0;
-    R_(g, x, j, w, 1, (j + f) & 2 ? PAL.smoke1 : PAL.smoke2);
-    P(g, x, j, PAL.smoke0); P(g, x + w - 1, j, PAL.smoke0);
-    if (r() < 0.3) P(g, x + r.int(w), j, PAL.rub0);
+  for (let j = 0; j < 96; j++) {
+    const w = 8 + Math.round(j / 96 * 44) + (f ? Math.round(Math.sin(j / 6) * 4) : Math.round(Math.cos(j / 6) * 4));
+    const x = 32 - w / 2 + Math.round(Math.sin(j / 10 + f) * 4) | 0;
+    R_(g, x, j, w, 1, (j + f * 2) & 4 ? PAL.smoke1 : PAL.smoke2);
+    R_(g, x, j, Math.max(1, w >> 3), 1, PAL.smoke3); R_(g, x + w - 2, j, 2, 1, PAL.smoke0); P(g, x, j, PAL.smoke0); P(g, x + w - 1, j, PAL.out);
+    if (r() < 0.3) R_(g, x + r.int(w), j, 2, 1, PAL.rub0);
   }
   return c;
 }
 function paintRad() {
-  const [c, g] = mk(16, 16);
-  R_(g, 0, 0, 16, 16, PAL.rad0); const r = rng(1600);
-  for (let i = 0; i < 30; i++) P(g, r.int(16), r.int(16), PAL.rad1);
-  for (let i = 0; i < 6; i++) P(g, r.int(16), r.int(16), PAL.rad2);
+  const [c, g] = mk(TS, TS);
+  R_(g, 0, 0, 32, 32, PAL.rad0); const r = rng(1600);
+  for (let i = 0; i < 60; i++) P(g, r.int(32), r.int(32), PAL.rad1);
+  for (let i = 0; i < 12; i++) { const x = r.int(30), y = r.int(30); R_(g, x, y, 2, 2, PAL.rad2); P(g, x, y, PAL.white); }
   return c;
 }
 function paintFlood(f) {
-  const [c, g] = mk(16, 16);
-  R_(g, 0, 0, 16, 16, PAL.flood); const r = rng(1700 + f);
-  for (let i = 0; i < 20; i++) P(g, r.int(16), r.int(16), PAL.mud);
-  for (let i = 0; i < 4; i++) { const x = (r.int(16) + f * 3) % 16; R_(g, x, r.int(16), 3, 1, PAL.w3); }
+  const [c, g] = mk(TS, TS);
+  R_(g, 0, 0, 32, 32, PAL.flood); const r = rng(1700 + f);
+  for (let i = 0; i < 50; i++) P(g, r.int(32), r.int(32), PAL.mud);
+  for (let i = 0; i < 6; i++) { const x = (r.int(32) + f * 5) % 32, y = r.int(32); R_(g, x, y, 5, 1, PAL.w3); P(g, (x + 5) % 32, y, PAL.w4); }
   return c;
 }
-/* the little puma that walks the title's scene and the HUD's pride counter */
 function paintPumaIcon() {
   const [c, g] = mk(16, 16);
   const rows = ["..xx......xx....", ".xaax....xaax...", ".xpppxxxxpppx...", "xppppppppppppx..", "xpppppppppppppx.", "xpeeppppppeepppx", "xpyyppppppyypppx", "xppppppppppppppx",
@@ -1871,8 +1926,7 @@ function paintPumaIcon() {
   return c;
 }
 function buildArt() {
-  ART.grass = [0, 1, 2].map(v => { const [c, g] = mk(16, 16); grassInto(g, 0, 0, 16, 16, 2000 + v); return c; });
-  ART.dirt = (() => { const [c, g] = mk(16, 16); R_(g, 0, 0, 16, 16, PAL.dirt); D_(g, 0, 0, 16, 16, PAL.dirt, PAL.dirt2); return c; })();
+  ART.grass = [0, 1, 2].map(v => { const [c, g] = mk(TS, TS); grassInto(g, 0, 0, TS, TS, 2000 + v); return c; });
   ART.water = [0, 1, 2, 3].map(paintWater);
   ART.tree = [0, 1].map(paintTree);
   ART.rubble = [0, 1].map(paintRubble);
@@ -1887,6 +1941,8 @@ function buildArt() {
   ART.kitten = [0, 1, 2].map(paintKitten); ART.tornado = [0, 1].map(paintTornado);
   ART.puma = paintPumaIcon();
 }
+/* draw a sprite at a map position: sprites are AS times the map's scale */
+function blit(g, spr, px, py) { g.drawImage(spr, px, py, spr.width / AS, spr.height / AS); }
 
 /* ---- the map and the city ---- */
 const W = 120, H = 100;
@@ -2473,27 +2529,27 @@ function drawView(V, opts = {}) {
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     const i = idx(x, y), t = T[i], px = x * TILE, py = y * TILE;
     switch (t) {
-      case T_DIRT: g.drawImage(ART.grass[(x * 7 + y * 13) % 3], px, py); break;
-      case T_WATER: g.drawImage(ART.water[((af >> 2) + ((x + y) & 1) * 2) & 3], px, py); break;
-      case T_TREE: g.drawImage(ART.tree[(x + y) & 1], px, py); break;
-      case T_RUBBLE: g.drawImage(ART.rubble[(x * 3 + y) & 1], px, py); break;
+      case T_DIRT: blit(g, ART.grass[(x * 7 + y * 13) % 3], px, py); break;
+      case T_WATER: blit(g, ART.water[((af >> 2) + ((x + y) & 1) * 2) & 3], px, py); break;
+      case T_TREE: blit(g, ART.tree[(x + y) & 1], px, py); break;
+      case T_RUBBLE: blit(g, ART.rubble[(x * 3 + y) & 1], px, py); break;
       case T_ROAD: {
         const m = mask4(S, x, y, n => T[n] === T_ROAD);
-        if (F[i] & 4) { g.drawImage(ART.water[((af >> 2) + x) & 3], px, py); g.drawImage(ART.bridge[m & 5 ? (m & 5) : (m & 10)], px, py); } else g.drawImage(ART.road[m], px, py);
-        if (TR[i] > 150) g.drawImage(ART.traffic[2], px, py); else if (TR[i] > 60) g.drawImage(ART.traffic[1], px, py);
-        if (F[i] & F_WIRE) g.drawImage(ART.wireOver[mask4(S, x, y, n => isWire(S, n))], px, py);
+        if (F[i] & 4) { blit(g, ART.water[((af >> 2) + x) & 3], px, py); blit(g, ART.bridge[m & 5 ? (m & 5) : (m & 10)], px, py); } else blit(g, ART.road[m], px, py);
+        if (TR[i] > 150) blit(g, ART.traffic[2], px, py); else if (TR[i] > 60) blit(g, ART.traffic[1], px, py);
+        if (F[i] & F_WIRE) blit(g, ART.wireOver[mask4(S, x, y, n => isWire(S, n))], px, py);
         break;
       }
       case T_WIRE: {
         const m = mask4(S, x, y, n => isWire(S, n));
-        if (F[i] & 4) { g.drawImage(ART.water[((af >> 2) + x) & 3], px, py); g.drawImage(ART.wireOver[m], px, py); } else g.drawImage(ART.wire[m], px, py);
+        if (F[i] & 4) { blit(g, ART.water[((af >> 2) + x) & 3], px, py); blit(g, ART.wireOver[m], px, py); } else blit(g, ART.wire[m], px, py);
         break;
       }
-      case T_PARK: g.drawImage(ART.park, px, py); break;
-      case T_FIRE: g.drawImage(ART.fire[(af + x + y) % 3], px, py); break;
-      case T_FLOOD: g.drawImage(ART.flood[((af >> 2) + x) & 1], px, py); break;
-      case T_RAD: g.drawImage(ART.rad, px, py); break;
-      case T_BLD: if (S.B[i] < 0 || !blds[S.B[i]]) g.drawImage(ART.rubble[0], px, py); break;
+      case T_PARK: blit(g, ART.park, px, py); break;
+      case T_FIRE: blit(g, ART.fire[(af + x + y) % 3], px, py); break;
+      case T_FLOOD: blit(g, ART.flood[((af >> 2) + x) & 1], px, py); break;
+      case T_RAD: blit(g, ART.rad, px, py); break;
+      case T_BLD: if (S.B[i] < 0 || !blds[S.B[i]]) blit(g, ART.rubble[0], px, py); break;
     }
   }
   /* buildings whose footprint touches the view */
@@ -2503,14 +2559,14 @@ function drawView(V, opts = {}) {
     let spr = null;
     if (k.zone) spr = b.lv ? ART.bld[b.k][b.lv] : ART.zone[b.k];
     else spr = ART[b.k];
-    if (spr) g.drawImage(spr, px, py);
-    if (b.k === "coal" && b.pw !== undefined) { g.drawImage(ART.smoke[af % 3], px + 6, py - 12); g.drawImage(ART.smoke[(af + 1) % 3], px + 40, py - 10); }
-    if (b.k === "I" && b.lv >= 2 && b.pw) { g.drawImage(ART.smoke[(af + b.x) % 3], px + (b.lv === 2 ? 34 : 2), py - 12); if (b.lv === 4) g.drawImage(ART.smoke[(af + 2) % 3], px + 20, py - 12); }
-    if (!b.pw && !k.power && (af & 8) && !opts.noBolt) g.drawImage(ART.bolt, px + (b.w * TILE - 16) / 2, py + (b.h * TILE - 16) / 2);
+    if (spr) blit(g, spr, px, py);
+    if (b.k === "coal") { blit(g, ART.smoke[af % 3], px + 6, py - 14); blit(g, ART.smoke[(af + 1) % 3], px + 40, py - 14); }
+    if (b.k === "I" && b.lv >= 2 && b.pw) { blit(g, ART.smoke[(af + b.x) % 3], px + (b.lv === 2 ? 34 : b.lv === 3 ? 0 : 0), py - 14); if (b.lv >= 3) blit(g, ART.smoke[(af + 2) % 3], px + (b.lv === 3 ? 30 : 20), py - 14); }
+    if (!b.pw && !k.power && (af & 8) && !opts.noBolt) blit(g, ART.bolt, px + (b.w * TILE - 16) / 2, py + (b.h * TILE - 16) / 2);
   }
   for (const e of S.ents) {
-    if (e.kind === "tornado") g.drawImage(ART.tornado[af & 1], Math.round(e.x * TILE) - 8, Math.round(e.y * TILE) - 40);
-    else if (e.kind === "kitten") g.drawImage(ART.kitten[(e.step >> 1) % 3], e.x * TILE, e.y * TILE - 8);
+    if (e.kind === "tornado") blit(g, ART.tornado[af & 1], Math.round(e.x * TILE) - 8, Math.round(e.y * TILE) - 40);
+    else if (e.kind === "kitten") blit(g, ART.kitten[(e.step >> 1) % 3], e.x * TILE, e.y * TILE - 8);
   }
   /* the cursor: the tool's footprint, green where it can go */
   if (V.hover && V.tool && !opts.noCursor) {
@@ -2560,21 +2616,22 @@ function buildTools() {
 function toolIcon(g, id) {
   g.imageSmoothingEnabled = false;
   g.fillStyle = "#0a1a2e"; g.fillRect(0, 0, 32, 32);
-  const z = (spr, s) => g.drawImage(spr, 0, 0, spr.width, spr.height, 0, 0, 32, 32);
+  const fit = spr => g.drawImage(spr, 0, 0, spr.width, spr.height, 0, 0, 32, 32);
+  const tile = spr => g.drawImage(spr, 0, 0, 32, 32);
   switch (id) {
-    case "doze": g.drawImage(ART.rubble[0], 0, 0, 16, 16, 0, 0, 32, 32); R_(g, 6, 14, 20, 10, PAL.gold); R_(g, 8, 8, 10, 7, PAL.gold); R_(g, 10, 10, 6, 4, PAL.gl1); R_(g, 4, 24, 24, 5, PAL.out); for (let i = 0; i < 6; i++) P(g, 5 + i * 4, 26, PAL.m2); R_(g, 24, 12, 6, 12, PAL.m1); break;
-    case "road": z(ART.road[5]); break;
-    case "wire": z(ART.wire[5]); break;
-    case "park": z(ART.park); break;
-    case "R": g.drawImage(ART.bld.R[2], 0, 0, 48, 48, -2, -2, 36, 36); break;
-    case "C": g.drawImage(ART.bld.C[2], 0, 0, 48, 48, -2, -2, 36, 36); break;
-    case "I": g.drawImage(ART.bld.I[2], 0, 0, 48, 48, -2, -2, 36, 36); break;
-    case "coal": g.drawImage(ART.coal, 0, 0, 64, 64, 0, 0, 32, 32); break;
-    case "nuke": g.drawImage(ART.nuke, 0, 0, 64, 64, 0, 0, 32, 32); break;
-    case "police": g.drawImage(ART.police, 0, 0, 48, 48, -2, -2, 36, 36); break;
-    case "fireSt": g.drawImage(ART.fireSt, 0, 0, 48, 48, -2, -2, 36, 36); break;
-    case "stadium": g.drawImage(ART.stadium, 0, 0, 64, 64, 0, 0, 32, 32); break;
-    case "query": g.drawImage(ART.grass[0], 0, 0, 16, 16, 0, 0, 32, 32); g.font = "32px Pride"; g.textBaseline = "top"; g.fillStyle = PAL.out; g.fillText("?", 9, 5); g.fillStyle = PAL.cyan; g.fillText("?", 7, 3); break;
+    case "doze": tile(ART.rubble[0]); R_(g, 6, 14, 20, 10, PAL.gold); R_(g, 8, 8, 10, 7, PAL.gold); R_(g, 10, 10, 6, 4, PAL.gl1); R_(g, 4, 24, 24, 5, PAL.out); for (let i = 0; i < 6; i++) P(g, 5 + i * 4, 26, PAL.m2); R_(g, 24, 12, 6, 12, PAL.m1); O_(g, 5, 13, 22, 12, PAL.out); break;
+    case "road": tile(ART.road[5]); break;
+    case "wire": tile(ART.wire[10]); break;
+    case "park": tile(ART.park); break;
+    case "R": fit(ART.bld.R[2]); break;
+    case "C": fit(ART.bld.C[2]); break;
+    case "I": fit(ART.bld.I[2]); break;
+    case "coal": fit(ART.coal); break;
+    case "nuke": fit(ART.nuke); break;
+    case "police": fit(ART.police); break;
+    case "fireSt": fit(ART.fireSt); break;
+    case "stadium": fit(ART.stadium); break;
+    case "query": tile(ART.grass[0]); g.font = "32px Pride"; g.textBaseline = "top"; g.fillStyle = PAL.out; g.fillText("?", 9, 5); g.fillStyle = PAL.cyan; g.fillText("?", 7, 3); break;
   }
 }
 function setTool(id) {
@@ -2598,7 +2655,7 @@ function updateHUD() {
   $("#s-funds").textContent = fmtN(S.funds); $("#s-fundsw").classList.toggle("neg", S.funds < 0);
   $("#s-pop").textContent = fmtN(S.pop);
   $("#s-class").textContent = cityClass(S.pop);
-  $("#s-zoom").textContent = UI.V.zoom;
+  $("#s-zoom").textContent = UI.V.zoom / 2;
   for (const b of document.querySelectorAll("[data-speed]")) b.setAttribute("aria-pressed", +b.dataset.speed === UI.speed ? "true" : "false");
   const g = $("#rci").getContext("2d");
   g.clearRect(0, 0, 36, 14);
@@ -2627,7 +2684,7 @@ function refreshSoundUI() {
 /* ---- play: the loop, the tools in hand, the pointer and the keys ---- */
 function startGame(S) {
   UI.S = S; UI.speed = S.speed || 2;
-  UI.V.S = S; UI.V.zoom = window.innerWidth < 760 ? 1 : 2;
+  UI.V.S = S; UI.V.zoom = 2;
   showScreen("game");
   fitView(UI.V);
   centreOn(UI.V, W / 2, H / 2);
@@ -2739,7 +2796,7 @@ function wireInput() {
   cv.addEventListener("contextmenu", ev => ev.preventDefault());
   cv.addEventListener("wheel", ev => {
     ev.preventDefault();
-    if (ev.ctrlKey) { setZoom(ev.deltaY < 0 ? 2 : 1, ev); return; }
+    if (ev.ctrlKey) { setZoom(ev.deltaY < 0 ? 4 : 2, ev); return; }
     const d = dprInt();
     if (ev.shiftKey) V.cam.x += ev.deltaY * d / V.scale; else { V.cam.x += ev.deltaX * d / V.scale; V.cam.y += ev.deltaY * d / V.scale; }
     clampCam(V);
@@ -2754,7 +2811,7 @@ function wireInput() {
     if (!b) return;
     if (b.dataset.speed !== undefined) setSpeed(+b.dataset.speed);
     else if (b.dataset.act === "mute") A.setMuted(!A.muted);
-    else if (b.dataset.act === "zoom") setZoom(V.zoom === 1 ? 2 : 1);
+    else if (b.dataset.act === "zoom") setZoom(V.zoom === 2 ? 4 : 2);
     else if (b.dataset.act === "menu") openMenu();
   });
   document.querySelector(".side").addEventListener("click", ev => {
@@ -2782,7 +2839,7 @@ function wireInput() {
     if (ev.key === " ") { ev.preventDefault(); if (UI.speed) { UI.pausedBy = UI.speed; setSpeed(0); } else setSpeed(UI.pausedBy || 2); return; }
     if (k === ",") return setSpeed(Math.max(1, UI.speed - 1));
     if (k === ".") return setSpeed(Math.min(3, UI.speed + 1));
-    if (k === "z") return setZoom(V.zoom === 1 ? 2 : 1);
+    if (k === "z") return setZoom(V.zoom === 2 ? 4 : 2);
     if (k === "g") return openBudget(false);
     if (k === "e") return openEval();
     if (k === "d") return openDisasters();
@@ -2949,13 +3006,13 @@ function openQuery(x, y) {
     detail += `<tr><th>Power</th><td class="${b.pw || k.power ? "k-ok" : "k-bad"}">${k.power ? "a plant" : b.pw ? "yes" : "no: dark"}</td></tr><tr><th>Age</th><td>${b.age} months</td></tr>`;
   }
   if (t === T_ROAD) detail = `<tr><th>Traffic</th><td>${word(S.TR[i], ["light", "light", "moderate", "heavy", "jammed"])}</td></tr>`;
-  const cv = document.createElement("canvas"); cv.width = 48; cv.height = 48;
+  const cv = document.createElement("canvas"); cv.width = 96; cv.height = 96;
   const g = cv.getContext("2d"); g.imageSmoothingEnabled = false;
-  if (b) { const spr = KINDS[b.k].zone ? (b.lv ? ART.bld[b.k][b.lv] : ART.zone[b.k]) : ART[b.k]; g.drawImage(spr, 0, 0, spr.width, spr.height, 0, 0, 48, 48); }
-  else { const base = t === T_WATER ? ART.water[0] : t === T_TREE ? ART.tree[0] : t === T_RUBBLE ? ART.rubble[0] : t === T_ROAD ? ART.road[mask4(S, x, y, n => S.T[n] === T_ROAD)] : t === T_WIRE ? ART.wire[mask4(S, x, y, n => isWire(S, n))] : t === T_PARK ? ART.park : t === T_FIRE ? ART.fire[0] : t === T_FLOOD ? ART.flood[0] : t === T_RAD ? ART.rad : ART.grass[0]; g.drawImage(base, 0, 0, 16, 16, 0, 0, 48, 48); }
+  if (b) { const spr = KINDS[b.k].zone ? (b.lv ? ART.bld[b.k][b.lv] : ART.zone[b.k]) : ART[b.k]; g.drawImage(spr, 0, 0, spr.width, spr.height, 0, 0, 96, 96); }
+  else { const base = t === T_WATER ? ART.water[0] : t === T_TREE ? ART.tree[0] : t === T_RUBBLE ? ART.rubble[0] : t === T_ROAD ? ART.road[mask4(S, x, y, n => S.T[n] === T_ROAD)] : t === T_WIRE ? ART.wire[mask4(S, x, y, n => isWire(S, n))] : t === T_PARK ? ART.park : t === T_FIRE ? ART.fire[0] : t === T_FLOOD ? ART.flood[0] : t === T_RAD ? ART.rad : ART.grass[0]; g.drawImage(base, 0, 0, 32, 32, 0, 0, 96, 96); }
   const win = openWin({
     title: `Query · ${x}, ${y}`,
-    html: `<div style="display:flex;gap:12px;align-items:flex-start"><canvas id="q-img" width="48" height="48" style="width:96px;height:96px;flex:none;border:4px solid var(--k-edge)"></canvas><table class="k-table">
+    html: `<div style="display:flex;gap:12px;align-items:flex-start"><canvas id="q-img" width="96" height="96" style="width:96px;height:96px;flex:none;border:4px solid var(--k-edge)"></canvas><table class="k-table">
       <tr><th>What</th><td>${esc(name)}</td></tr>${detail}
       <tr><th>Land value</th><td>${word(S.LV[i], ["slum", "low", "fair", "good", "high", "prime"])}</td></tr>
       <tr><th>Pollution</th><td class="${S.POL[i] > 120 ? "k-bad" : ""}">${word(S.POL[i], ["clean", "light", "noticeable", "heavy", "choking"])}</td></tr>
@@ -3047,7 +3104,7 @@ const HELP = [
 ];
 function aboutHTML() {
   return `<p><b>SimPuma</b> is a city of pumas after <b>SimCity</b> (Will Wright, Maxis, 1989): zones, power, roads, taxes, the yearly evaluation and the disasters, with a giant kitten where the monster was. Nothing from the original is used.</p>
-  <p>Painted 16-bit pixel art drawn in code at load; the Pride pixel font is the game's own. One file, nothing fetched. The city, the hall of cities and your settings live in this browser alone, under <code>simpuma_*</code>; Settings can forget them.</p>
+  <p>Painted 16-bit pixel art at 32 pixels a tile, drawn in code at load; the Pride pixel font is the game's own. One file, nothing fetched. The city, the hall of cities and your settings live in this browser alone, under <code>simpuma_*</code>; Settings can forget them.</p>
   <p class="gk-credit">Built by <a href="https://greykit.com/" target="_blank" rel="noopener">greykit.com</a></p>`;
 }
 function openHelp() {
@@ -3160,7 +3217,7 @@ function startDemo(el) {
   const cv = document.createElement("canvas");
   el.appendChild(cv);
   const V = makeView(cv);
-  V.zoom = window.innerWidth >= 1000 ? 2 : 1;
+  V.zoom = 2;
   const D = { V, S: null, bot: null, t: 0, step: 0, cx: 0, cy: 0 };
   TITLE.demo = D;
   const fresh = () => {

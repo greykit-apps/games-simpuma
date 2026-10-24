@@ -46,7 +46,7 @@ The city in progress is saved in this browser every six months of city time and 
 
 ## The look
 
-Everything past the boot is 16-bit painted pixel art, drawn in code at load: the tiles, the buildings at four densities, the plants, the kitten. The lettering is **Pride**, the game's own 5×8 pixel font, built from `tools/font/glyphs.txt` and embedded in the page. The boot screen and the palette are the greykit.games Tactical canon.
+Everything past the boot is 16-bit painted pixel art at 32 pixels a tile, drawn in code at load: the tiles, the buildings at four densities, the plants, the kitten. The lettering is **Pride**, the game's own 5×8 pixel font, built from `tools/font/glyphs.txt` and embedded in the page. The boot screen and the palette are the greykit.games Tactical canon.
 
 ## Credits
 
