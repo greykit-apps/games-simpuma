@@ -1,0 +1,14 @@
+{
+  "name": "SimPuma",
+  "short_name": "SimPuma",
+  "description": "Build a city of pumas. A remake of SimCity (1989) in 16-bit painted pixel art: zone, power, tax, and keep the pride happy through fires, floods and a very large kitten.",
+  "start_url": ".",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#05070f",
+  "theme_color": "#05070f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

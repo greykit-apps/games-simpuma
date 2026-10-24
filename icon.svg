@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="64" height="64" shape-rendering="crispEdges">
+  <!-- SimPuma's icon: a puma's face in 16-bit pixels on the Tactical navy, a
+       cyan rule at the top as the family's share cards have. Hand-placed
+       pixels; tools/render-icons.sh rasterises it to the PNGs and the .ico. -->
+  <rect width="16" height="16" fill="#05070f"/>
+  <rect width="16" height="1" fill="#54f2ff"/>
+  <!-- ears -->
+  <path fill="#0d0f14" d="M2 3h2v1H2zM12 3h2v1h-2zM1 4h1v3H1zM14 4h1v3h-1z"/>
+  <path fill="#d19a4a" d="M2 4h2v1H2zM12 4h2v1h-2z"/>
+  <path fill="#7a4a22" d="M3 4h1v1H3zM12 4h1v1h-1z"/>
+  <!-- head -->
+  <path fill="#0d0f14" d="M2 5h12v1H2zM1 7h1v5H1zM14 7h1v5h-1zM2 12h1v1H2zM13 12h1v1h-1zM3 13h2v1H3zM11 13h2v1h-2zM5 14h6v1H5z"/>
+  <path fill="#d19a4a" d="M2 6h12v1H2zM2 7h12v5H2zM3 12h10v1H3zM5 13h6v1H5z"/>
+  <path fill="#a9702f" d="M2 11h1v1H2zM13 11h1v1h-1zM3 12h1v1H3zM12 12h1v1h-1z"/>
+  <!-- eyes, amber with a dark pupil -->
+  <path fill="#0d0f14" d="M3 8h3v2H3zM10 8h3v2h-3z"/>
+  <path fill="#ffb000" d="M4 8h2v1H4zM10 8h2v1h-2z"/>
+  <path fill="#1a1a24" d="M5 8h1v1H5zM10 8h1v1h-1z"/>
+  <!-- muzzle and nose -->
+  <path fill="#f6e9cf" d="M6 10h4v3H6zM5 11h1v2H5zM10 11h1v2h-1z"/>
+  <path fill="#1a1a24" d="M7 10h2v1H7zM8 11h1v1H8z"/>
+</svg>
